@@ -1,0 +1,38 @@
+{
+  "name": "force-graph-lib",
+  "private": false,
+  "version": "0.1.0",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/force-graph-lib.umd.js",
+  "module": "./dist/force-graph-lib.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/force-graph-lib.es.js",
+      "require": "./dist/force-graph-lib.umd.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.10",
+    "terser": "^5.43.1",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.0"
+  },
+  "dependencies": {
+    "@types/d3": "^7.4.3",
+    "@types/force-graph": "^1.21.2",
+    "axios": "^1.10.0",
+    "axios-mock-adapter": "^2.1.0",
+    "d3": "^7.9.0",
+    "force-graph": "^1.50.1",
+    "web-worker": "^1.5.0"
+  }
+}
