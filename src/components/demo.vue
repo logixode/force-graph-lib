@@ -1,79 +1,6 @@
 <template>
   <div class="">
-    <Collapsible
-      v-model:open="isOpen"
-      class="space-y-2 bg-card shadow-xl shadow-amber-50 rounded-md mb-2"
-    >
-      <CollapsibleTrigger as-child>
-        <Button variant="ghost" size="sm" class="font-bold w-full p-0 m-0">
-          Graph Control
-          <ChevronsUpDown class="h-4 w-4" />
-          <span class="sr-only">Toggle</span>
-        </Button>
-      </CollapsibleTrigger>
-      <CollapsibleContent class="p-4 space-y-2">
-        <div class="flex gap-2 flex-wrap">
-          <div class="control-group">
-            <!-- <label for="layout-toggle-v2">Layout:</label> -->
-            <Button id="layout-toggle-v2" @click="toggleLayout">
-              {{ layout === 'force' ? 'Switch to Circle Pack' : 'Switch to Force Directed' }}
-            </Button>
-          </div>
-          <div class="control-group">
-            <Button id="refresh-btn-v2" @click="refreshGraph">Refresh Graph</Button>
-          </div>
-
-          <div class="control-group">
-            <Button id="reset-btn-v2" @click="resetGraph">Reset Graph</Button>
-          </div>
-
-          <div class="control-group">
-            <Button id="load-more-btn-v2" :disabled="!loadMoreBtn.status" @click="loadMoreData">
-              {{ loadMoreBtn.text }}
-            </Button>
-          </div>
-        </div>
-
-        <div class="flex gap-2 flex-wrap">
-          <Select
-            v-model="nodeSelect.selected as string"
-            @update:modelValue="focusOnNode(String($event))"
-          >
-            <SelectTrigger class="w-[180px]">
-              <SelectValue placeholder="Select a fruit" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <!-- <SelectLabel>Fruits</SelectLabel> -->
-                <SelectItem
-                  v-for="item in nodeSelect.options"
-                  :key="item.value"
-                  :value="item.value"
-                >
-                  {{ item.label }}
-                </SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-
-          <div class="control-group w-">
-            <label for="threshold-slider-v2">
-              Label Threshold:
-              <span>{{ labelThreshold }}</span>
-            </label>
-
-            <Slider
-              id="threshold-slider-v2"
-              v-model="labelThreshold"
-              @update:model-value="updateThreshold"
-              :min="0"
-              :max="10"
-              :step="0.1"
-            />
-          </div>
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+    <GraphOptions />
 
     <div class="w-full h-[35rem] bg-primary/20 rounded-md p-2 relative" v-auto-animate>
       <div ref="graphContainer" class="w-full h-full" />
@@ -110,24 +37,13 @@ import { ForceGraph } from '@/lib/ForceGraph'
 import { DefaultDataFetcher } from '../../interfaces/dataFetcher'
 import { DataManager } from '../../interfaces/dataManager'
 import { DefaultDataTransformer } from '../../interfaces/dataTransformer'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, provide, ref, watch, type Ref } from 'vue'
 import { useElementSize } from '@vueuse/core'
-import Collapsible from './ui/collapsible/Collapsible.vue'
-import CollapsibleTrigger from './ui/collapsible/CollapsibleTrigger.vue'
-import Button from './ui/button/Button.vue'
-import { ChevronsUpDown } from 'lucide-vue-next'
-import CollapsibleContent from './ui/collapsible/CollapsibleContent.vue'
-import Slider from './ui/slider/Slider.vue'
-import type { GraphOptions, NodeData } from 'interfaces/types'
-import Select from './ui/select/Select.vue'
-import SelectTrigger from './ui/select/SelectTrigger.vue'
-import SelectValue from './ui/select/SelectValue.vue'
-import SelectContent from './ui/select/SelectContent.vue'
-import SelectGroup from './ui/select/SelectGroup.vue'
-import SelectLabel from './ui/select/SelectLabel.vue'
-import SelectItem from './ui/select/SelectItem.vue'
+import type { GraphOptions as GraphOptionsType, NodeData } from '../../interfaces/types'
+import GraphOptions from './GraphOptions.vue'
+import type { GraphContext } from '../types/graph-context'
 
-const isOpen = ref(true)
+// Graph context state
 const fetchLoading = ref(false)
 const renderLoading = ref(false)
 const nodeSearch = ref<string>()
@@ -145,13 +61,14 @@ const loadMoreBtn = ref({
   text: 'Load More',
 })
 const labelThreshold = ref([1.2])
+const layout = ref<'force' | 'circlepack'>('force')
 
 // graph related data
-let graph: ForceGraph
+const graph = ref<ForceGraph>()
 const graphContainer = ref<HTMLDivElement>()
 const { width, height } = useElementSize(graphContainer)
 
-const graphOptions = computed<GraphOptions>(() => ({
+const graphOptions = computed<GraphOptionsType>(() => ({
   width: width.value,
   height: height.value,
   // layout: "circlepack",
@@ -169,7 +86,7 @@ const graphOptions = computed<GraphOptions>(() => ({
   },
   cluster: (node: NodeData) => node.sentiment || node.platform,
 }))
-const layout = ref<'force' | 'circlepack'>('force')
+
 const initialData = {
   nodes: [],
   links: [],
@@ -178,44 +95,25 @@ const initialData = {
 // Create data management components
 const dataFetcher = new DefaultDataFetcher()
 const dataTransformer = new DefaultDataTransformer()
-const dataManager = new DataManager(dataFetcher, dataTransformer)
 
-onMounted(async () => {
-  if (!graphContainer.value) return
-  graph = new ForceGraph(graphContainer.value, initialData, graphOptions.value)
+// Create a DataManager instance
+// Import DataManager from the same path as in GraphContext to ensure type compatibility
+const dataManager = ref(new DataManager(dataFetcher, dataTransformer)) as Ref<DataManager>
 
-  // Set the data manager on the graph
-  graph.setDataManager(dataManager)
-  await loadMoreData()
-
-  // Set up interval to check loading status
-  setInterval(updateLoadingIndicator, 500)
-})
-
-// Function to update loading indicator
+// Create and provide the graph context
 const updateLoadingIndicator = () => {
-  // const loadingState = graph.getLoadingState()
-  // const isLoading = loadingState.isCalculating
+  if (!dataManager.value) return
+
   const paginationInfo = {
-    currentPage: dataManager.getCurrentPage(),
-    totalPages: dataManager.getTotalPages(),
-    isLastPage: dataManager.getIsLastPage(),
+    currentPage: dataManager.value.getCurrentPage(),
+    totalPages: dataManager.value.getTotalPages(),
+    isLastPage: dataManager.value.getIsLastPage(),
   }
 
-  // renderLoading.value = isLoading
-
-  // Update load more button state
-  // loadMoreBtn.value.status = !(isLoading || !!paginationInfo?.isLastPage)
-
-  // Update button text to show loading progress
   if (paginationInfo?.isLastPage) {
     loadMoreBtn.value.text = 'All Data Loaded'
-    // } else if (isLoading) {
-    //   loadMoreBtn.value.text = 'Loading...'
   } else {
-    loadMoreBtn.value.text = `Load More Data (${
-      paginationInfo?.currentPage || 0
-    }/${paginationInfo?.totalPages || 5})`
+    loadMoreBtn.value.text = `Load More Data (${paginationInfo?.currentPage || 0}/${paginationInfo?.totalPages || 5})`
   }
   loadMoreBtn.value.status = true
 
@@ -225,13 +123,64 @@ const updateLoadingIndicator = () => {
   }
 }
 
+// Provide the graph context to child components
+const graphContext: GraphContext = {
+  graph,
+  dataManager,
+  layout,
+  labelThreshold,
+  loadMoreBtn,
+  nodeSelect,
+  fetchLoading,
+  renderLoading,
+  updateLoadingIndicator,
+}
+
+provide('graphContext', graphContext)
+
+onMounted(async () => {
+  if (!graphContainer.value) return
+  graph.value = new ForceGraph(graphContainer.value, initialData, graphOptions.value)
+
+  // Set the data manager on the graph
+  if (graph.value && dataManager.value) {
+    graph.value.setDataManager(dataManager.value)
+  }
+
+  // Initial data load
+  fetchLoading.value = true
+  try {
+    if (dataManager.value) {
+      const newData = await dataManager.value.fetchNextPage()
+      if (newData && graph) {
+        graph.value.addData(newData)
+        nodeSelect.value.options.push(
+          ...graph.value.getNodesData().map((node) => ({
+            label: node.label || String(node.id),
+            value: node.id.toString(),
+          })),
+        )
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching initial data:', error)
+  }
+  fetchLoading.value = false
+
+  // Set up interval to check loading status
+  setInterval(updateLoadingIndicator, 500)
+})
+
 // Function to populate node selectbox
 const populateNodeSelect = (searchTerm: string = '') => {
-  const graphData = graph.getData()
+  if (!graph.value) return
+
+  const graphData = graph.value.getData()
   const nodes = graphData.nodes || []
 
   // Clear existing options
   nodeSelect.value.selected = null
+  nodeSelect.value.options = []
 
   // Filter nodes based on search term
   const filteredNodes = nodes.filter((node) => {
@@ -255,97 +204,18 @@ const populateNodeSelect = (searchTerm: string = '') => {
 
   // Add filtered nodes to select
   filteredNodes.forEach((node) => {
-    const option = document.createElement('option')
-    option.value = node.id.toString()
-
     const nodeLabel = node.label || node.id.toString()
     const platform = node.platform ? ` (${node.platform})` : ''
-    option.textContent = `${nodeLabel}${platform}`
 
-    // Add data attributes for additional info
-    option.setAttribute('data-platform', node.platform || '')
-    option.setAttribute('data-label', nodeLabel)
-
-    nodeSelect.value.options.push(option)
-  })
-
-  // // Show/hide select based on search results
-  // if (searchTerm && filteredNodes.length > 0) {
-  //   nodeSelect.value.show = true
-  // } else if (!searchTerm) {
-  //   nodeSelect.value.show = false
-  // }
-}
-
-// Function to focus on selected node
-const focusOnNode = (nodeId: string) => {
-  if (nodeId && graph.hasNode(nodeId)) {
-    graph.focusPosition({ id: nodeId })
-
-    // Clear search and hide select
-    nodeSearch.value = ''
-    // nodeSelect.value.show = false
-
-    // Optional: Show feedback
-    const node = graph.getNodeById(nodeId)
-    if (node) {
-      console.log(`Focused on node: ${node.label || nodeId}`)
-    }
-  } else {
-    console.error('Node not found or invalid ID provided.')
-  }
-}
-
-function toggleLayout() {
-  layout.value = layout.value === 'force' ? 'circlepack' : 'force'
-  graph.setLayout(layout.value as 'force' | 'circlepack')
-}
-
-function refreshGraph() {
-  graph.refresh()
-}
-
-function resetGraph() {
-  graph.resetGraph()
-}
-
-async function loadMoreData() {
-  fetchLoading.value = true
-  loadMoreBtn.value.status = false
-  try {
-    const newData = await dataManager.fetchNextPage()
-    if (newData) {
-      graph.addData(newData)
-      nodeSelect.value.options.push(
-        ...graph.getNodesData().map((node) => ({
-          label: node.label || String(node.id),
-          value: node.id.toString(),
-        })),
-      )
-    }
-    console.log('nodes', graph.getDataSize().nodes)
-    console.log('links', graph.getDataSize().links)
-    // console.log('size', graph.getSize());
-  } catch (error) {
-    console.error('Error fetching data:', error)
-  }
-  fetchLoading.value = false
-  updateLoadingIndicator()
-}
-
-function updateThreshold() {
-  // console.log('update threshold', labelThreshold.value[0])
-
-  graph.setOptions({
-    labelThreshold: labelThreshold.value[0],
+    nodeSelect.value.options.push({
+      label: `${nodeLabel}${platform}`,
+      value: node.id.toString(),
+    })
   })
 }
 
 // Watch for changes in width and height from useElementSize
 watch([width, height], (newVal, oldVal) => {
-  // console.log('w', oldVal[0], newVal[0])
-  // console.log('h', oldVal[1], newVal[1])
-
   if (
     newVal[0] > oldVal[0] - 10 &&
     newVal[0] < oldVal[0] + 10 &&
@@ -353,14 +223,18 @@ watch([width, height], (newVal, oldVal) => {
     newVal[1] < oldVal[1] + 10
   )
     return
-  // console.log('Size changed:', { width: newVal[0], height: newVal[1] })
-  if (!graphContainer.value) return
+
+  if (!graphContainer.value || !graph.value) return
 
   // Store current graph data and options
-  const currentData = graph?.getData() || initialData
+  const currentData = graph.value.getData() || initialData
 
   // Recreate graph with new dimensions
-  graph = new ForceGraph(graphContainer.value, currentData, graphOptions.value)
-  graph.setDataManager(dataManager)
+  graph.value = new ForceGraph(graphContainer.value, currentData, graphOptions.value)
+
+  // Set the data manager on the graph if available
+  if (graph.value && dataManager.value) {
+    graph.value.setDataManager(dataManager.value)
+  }
 })
 </script>
