@@ -47,7 +47,7 @@ export const mockApiExample = async () => {
 
 // Example 3: Environment-based switching
 export const environmentBasedExample = async () => {
-  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isDevelopment = import.meta.env.MODE === 'development';
   
   if (isDevelopment) {
     console.log('🔧 Development mode - using mock API');

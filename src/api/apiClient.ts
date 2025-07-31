@@ -1,5 +1,6 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { FullResponse } from '../../interfaces/graphResponse';
+import axios from 'axios';
+import type { AxiosInstance, AxiosResponse } from 'axios';
+import type { FullResponse } from '../../interfaces/graphResponse';
 
 // API Configuration
 export interface ApiConfig {
@@ -10,7 +11,7 @@ export interface ApiConfig {
 
 // Default configuration
 const defaultConfig: ApiConfig = {
-  baseURL: process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3000/api',
+  baseURL: import.meta.env.MODE === 'production' ? '/api' : 'http://localhost:3000/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

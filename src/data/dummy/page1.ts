@@ -1,4 +1,4 @@
-import { Pagination } from "../../../interfaces/graphResponse";
+import type { Pagination } from "../../../interfaces/graphResponse";
 import type { FullResponse } from "../../api";
 
 const res: FullResponse<Pagination> = {

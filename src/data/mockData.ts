@@ -1,4 +1,4 @@
-import { FullResponse, Pagination } from '../../interfaces/graphResponse';
+import type { FullResponse, Pagination } from '../../interfaces/graphResponse';
 import dummy from './dummy';
 
 // Mock data converted from JSON files

@@ -1,31 +1,27 @@
-import { defineConfig } from 'vite';
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
+import path from 'node:path'
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import vueDevTools from 'vite-plugin-vue-devtools'
+import type { Plugin } from 'vite'
+import VueRouter from 'unplugin-vue-router/vite'
+import tailwindcss from '@tailwindcss/vite'
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const vuePlugin = vue as unknown as () => Plugin
 
+// https://vite.dev/config/
 export default defineConfig({
-  build: {
-    lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
-      name: 'ForceGraphLib',
-      fileName: (format) => `force-graph-lib.${format}.js`,
+  plugins: [
+    VueRouter({
+      // Router plugin options
+      dts: true, // generate TypeScript declaration for routes
+    }),
+    vuePlugin(),
+    vueDevTools(),
+    tailwindcss(),
+  ],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
     },
-    rollupOptions: {
-      external: ['force-graph', 'web-worker'],
-      output: {
-        globals: {
-          'force-graph': 'ForceGraph',
-          'web-worker': 'WebWorker'
-        }
-      }
-    },
-    sourcemap: true,
-    minify: 'terser',
-    target: 'es2015'
   },
-  server: {
-    open: true
-  }
-});
+})

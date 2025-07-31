@@ -11,28 +11,65 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/force-graph-lib.es.js",
-      "require": "./dist/force-graph-lib.umd.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/force-graph-lib.umd.js"
     }
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build"
-  },
-  "devDependencies": {
-    "@types/node": "^24.0.10",
-    "terser": "^5.43.1",
-    "typescript": "~5.8.3",
-    "vite": "^7.0.0"
+    "build": "run-p type-check \"build-only {@}\" --",
+    "preview": "vite preview",
+    "test:unit": "vitest",
+    "test:e2e": "playwright test",
+    "build-only": "vite build",
+    "type-check": "vue-tsc --build",
+    "lint": "eslint . --fix",
+    "format": "prettier --write src/"
   },
   "dependencies": {
-    "@types/d3": "^7.4.3",
-    "@types/force-graph": "^1.21.2",
-    "axios": "^1.10.0",
-    "axios-mock-adapter": "^2.1.0",
+    "@formkit/auto-animate": "^0.8.2",
+    "@tailwindcss/vite": "^4.1.11",
+    "@vueuse/core": "^13.6.0",
+    "axios": "^1.11.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "d3": "^7.9.0",
+    "d3-force-clustering": "^1.0.0",
     "force-graph": "^1.50.1",
-    "web-worker": "^1.5.0"
+    "lucide-vue-next": "^0.525.0",
+    "reka-ui": "^2.4.1",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4.1.11",
+    "tw-animate-css": "^1.3.5",
+    "vue": "^3.5.17",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.53.1",
+    "@tailwindcss/cli": "^4.1.11",
+    "@tsconfig/node22": "^22.0.2",
+    "@types/d3": "^7.4.3",
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^22.16.5",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "@vitest/eslint-plugin": "^1.2.7",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/eslint-config-typescript": "^14.5.1",
+    "@vue/test-utils": "^2.4.6",
+    "@vue/tsconfig": "^0.7.0",
+    "eslint": "^9.29.0",
+    "eslint-plugin-playwright": "^2.2.0",
+    "eslint-plugin-vue": "~10.2.0",
+    "jiti": "^2.4.2",
+    "jsdom": "^26.1.0",
+    "npm-run-all2": "^8.0.4",
+    "prettier": "3.5.3",
+    "typescript": "~5.8.0",
+    "unplugin-vue-router": "^0.14.0",
+    "vite": "^7.0.0",
+    "vite-plugin-vue-devtools": "^7.7.7",
+    "vitest": "^3.2.4",
+    "vue-tsc": "^2.2.10"
   }
 }

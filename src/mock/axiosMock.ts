@@ -1,7 +1,7 @@
 import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import { getMockDataByPage } from '../data/mockData';
-import { FullResponse } from '../../interfaces/graphResponse';
+import { type FullResponse } from '../../interfaces/graphResponse';
 
 // Create axios mock adapter
 const mock = new MockAdapter(axios, { delayResponse: 500 }); // 500ms delay to simulate network

@@ -21,46 +21,48 @@ npm install force-graph-lib
 ## Usage
 
 ```typescript
-import { ForceGraph } from 'force-graph-lib';
+import { ForceGraph } from 'force-graph-lib'
 
 // Initialize the graph
-const container = document.getElementById('graph-container');
-const graph = new ForceGraph(container, {
-  nodes: [
-    { id: '1', name: 'Node 1' },
-    { id: '2', name: 'Node 2' }
-  ],
-  links: [
-    { source: '1', target: '2' }
-  ]
-}, {
-  labelThreshold: 1.2,
-  nodeSize: (node) => node.size || 5,
-  nodeLabel: (node) => node.name,
-  nodeIcon: '●'
-});
+const container = document.getElementById('graph-container')
+const graph = new ForceGraph(
+  container,
+  {
+    nodes: [
+      { id: '1', name: 'Node 1' },
+      { id: '2', name: 'Node 2' },
+    ],
+    links: [{ source: '1', target: '2' }],
+  },
+  {
+    labelThreshold: 1.2,
+    nodeSize: (node) => node.size || 5,
+    nodeLabel: (node) => node.name,
+    nodeIcon: '●',
+  },
+)
 
 // Add more data incrementally
 graph.addData({
   nodes: [{ id: '3', name: 'Node 3' }],
-  links: [{ source: '2', target: '3' }]
-});
+  links: [{ source: '2', target: '3' }],
+})
 
 // Change layout
-graph.setLayout('circlepack');
+graph.setLayout('circlepack')
 
 // Update label threshold
-graph.setLabelThreshold(1.5);
+graph.setLabelThreshold(1.5)
 
 // Refresh or reset the graph
-graph.refreshGraph();
-graph.resetGraph();
+graph.refreshGraph()
+graph.resetGraph()
 
 // Check loading state
-console.log(graph.isLoading());
+console.log(graph.isLoading())
 
 // Clean up
-graph.destroy();
+graph.destroy()
 ```
 
 ## API Reference
@@ -76,14 +78,14 @@ new ForceGraph(container: HTMLElement, data: GraphData, options?: GraphOptions)
 ```typescript
 interface GraphData {
   nodes: Array<{
-    id: string;
-    [key: string]: any;
-  }>;
+    id: string
+    [key: string]: any
+  }>
   links: Array<{
-    source: string;
-    target: string;
-    [key: string]: any;
-  }>;
+    source: string
+    target: string
+    [key: string]: any
+  }>
 }
 ```
 
@@ -91,13 +93,13 @@ interface GraphData {
 
 ```typescript
 interface GraphOptions {
-  labelThreshold?: number;
-  layout?: 'force' | 'circlepack';
-  nodeSize?: number | ((node: any) => number);
-  linkWidth?: number | ((link: any) => number);
-  nodeLabel?: string | ((node: any) => string);
-  linkLabel?: string | ((link: any) => string);
-  nodeIcon?: string | ((node: any) => string);
+  labelThreshold?: number
+  layout?: 'force' | 'circlepack'
+  nodeSize?: number | ((node: any) => number)
+  linkWidth?: number | ((link: any) => number)
+  nodeLabel?: string | ((node: any) => string)
+  linkLabel?: string | ((link: any) => string)
+  nodeIcon?: string | ((node: any) => string)
 }
 ```
 
