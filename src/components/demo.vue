@@ -27,6 +27,10 @@
       <div class="absolute bottom-2 right-3 text-xs">
         {{ graphContainer?.clientWidth }}x{{ graphContainer?.clientHeight }}
       </div>
+      <div class="absolute bottom-2 left-3 text-xs">
+        <p>nodes: {{ graph?.getDataSize().nodes }}</p>
+        <p>links: {{ graph?.getDataSize().links }}</p>
+      </div>
     </div>
     {{ graphOptions }}
   </div>
@@ -74,7 +78,6 @@ const graphOptions = computed<GraphOptionsType>(() => ({
   // layout: "circlepack",
   labelThreshold: labelThreshold.value[0],
   keepDragPosition: true,
-  noCollision: true,
   // nodeSize: (node: NodeData) => node.value ? Math.sqrt(node.value) / 100 + 3 : 3,
   nodeLabel: (node: NodeData) => {
     const label = node.label || String(node.id)
@@ -152,7 +155,7 @@ onMounted(async () => {
   try {
     if (dataManager.value) {
       const newData = await dataManager.value.fetchNextPage()
-      if (newData && graph) {
+      if (newData && graph.value) {
         graph.value.addData(newData)
         nodeSelect.value.options.push(
           ...graph.value.getNodesData().map((node) => ({

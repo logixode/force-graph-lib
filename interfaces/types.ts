@@ -49,7 +49,6 @@ export interface GraphOptions {
   cluster?: (node: NodeData) => boolean | undefined | null
   collide?: (node: NodeData) => number
   loading?: boolean
-  noCollision?: boolean
   keepDragPosition?: boolean
   nodeClickHandler?: (node: NodeData) => void
 }

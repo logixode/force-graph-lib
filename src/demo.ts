@@ -33,7 +33,6 @@ const graph = new ForceGraph(graphContainer, initialData, {
   // layout: "circlepack",
   labelThreshold: 1.2,
   keepDragPosition: true,
-  noCollision: true,
   // nodeSize: (node: NodeData) => node.value ? Math.sqrt(node.value) / 100 + 3 : 3,
   nodeLabel: (node: NodeData) => node.label || (node.id as string),
 })

@@ -458,9 +458,4 @@ export class ForceGraph {
     }
     this.graph._destructor()
   }
-  public setNoCollision(noCollision: boolean) {
-    this.options.noCollision = noCollision
-    this.applyOptions()
-    this.refresh()
-  }
 }
