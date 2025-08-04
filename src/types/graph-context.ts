@@ -5,7 +5,6 @@ import type { DataManager } from '../../interfaces/dataManager'
 export interface GraphContext {
   graph: Ref<ForceGraph | undefined>
   dataManager: Ref<DataManager | undefined>
-  layout: Ref<'force' | 'circlepack'>
   labelThreshold: Ref<number[]>
   loadMoreBtn: Ref<{
     status: boolean

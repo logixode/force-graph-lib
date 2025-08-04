@@ -67,16 +67,22 @@ const loadMoreBtn = ref({
   text: 'Load More',
 })
 const labelThreshold = ref([1.2])
-const layout = ref<'force' | 'circlepack'>('force')
 
 // graph related data
 const graph = ref<ForceGraph>()
 const graphContainer = ref<HTMLDivElement>()
 const { width, height } = useElementSize(graphContainer)
-const labelColor = {
-  dark: '#eee',
-  light: '#222',
-}
+const labelColor = computed(
+  () =>
+    ({
+      dark: '#eee',
+      light: '#222',
+    })[isDark.value ? 'dark' : 'light'],
+)
+// const labelColor = {
+//   dark: '#eee',
+//   light: '#222',
+// }
 
 // Define platform colors
 const platformColors: Record<string, string> = {
@@ -128,7 +134,6 @@ const updateLoadingIndicator = () => {
 const graphOptions = computed<GraphOptionsType>(() => ({
   width: width.value,
   height: height.value,
-  // layout: "circlepack",
   labelThreshold: labelThreshold.value[0],
   keepDragPosition: true,
   nodeSize,
@@ -136,7 +141,7 @@ const graphOptions = computed<GraphOptionsType>(() => ({
     const label = node.label || String(node.id)
     return `${label}${node.type ? ` (${node.type})` : ''}`
   },
-  nodeLabelColor: labelColor[isDark.value ? 'dark' : 'light'],
+  nodeLabelColor: labelColor.value,
   nodeColor: (node: NodeData) => {
     if (!node.type) return `#eeed11`
     // Use platform-based coloring if available
@@ -169,7 +174,6 @@ const graphOptions = computed<GraphOptionsType>(() => ({
 const graphContext: GraphContext = {
   graph,
   dataManager,
-  layout,
   labelThreshold,
   loadMoreBtn,
   nodeSelect,
@@ -276,16 +280,23 @@ watch([width, height], (newVal, oldVal) => {
     return
 
   if (!graphContainer.value || !graph.value) return
+  graph.value.setOptions({ width: newVal[0], height: newVal[1] })
+  graph.value?.reinitialize()
 
-  // Store current graph data and options
-  const currentData = graph.value.getData() || initialData
+  // // Store current graph data and options
+  // const currentData = graph.value.getData() || initialData
 
-  // Recreate graph with new dimensions
-  graph.value = new ForceGraph(graphContainer.value, currentData, graphOptions.value)
+  // // Recreate graph with new dimensions
+  // graph.value = new ForceGraph(graphContainer.value, currentData, graphOptions.value)
 
-  // Set the data manager on the graph if available
-  if (graph.value && dataManager.value) {
-    graph.value.setDataManager(dataManager.value)
-  }
+  // // Set the data manager on the graph if available
+  // if (graph.value && dataManager.value) {
+  //   graph.value.setDataManager(dataManager.value)
+  // }
+})
+
+watch(isDark, () => {
+  if (!graph.value) return
+  graph.value.setOptions({ nodeLabelColor: labelColor.value })
 })
 </script>

@@ -13,11 +13,6 @@
     <CollapsibleContent class="p-4 space-y-2">
       <div class="flex gap-2 flex-wrap">
         <div class="control-group">
-          <Button id="layout-toggle-v2" @click="toggleLayout">
-            {{ layout === 'force' ? 'Switch to Circle Pack' : 'Switch to Force Directed' }}
-          </Button>
-        </div>
-        <div class="control-group">
           <Button id="refresh-btn-v2" @click="refreshGraph">Refresh Graph</Button>
         </div>
 
@@ -101,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, inject, computed } from 'vue'
+import { ref, inject } from 'vue'
 import Collapsible from './ui/collapsible/Collapsible.vue'
 import CollapsibleTrigger from './ui/collapsible/CollapsibleTrigger.vue'
 import Button from './ui/button/Button.vue'
@@ -112,7 +107,6 @@ import Select from './ui/select/Select.vue'
 import SelectTrigger from './ui/select/SelectTrigger.vue'
 import SelectValue from './ui/select/SelectValue.vue'
 import SelectContent from './ui/select/SelectContent.vue'
-import SelectGroup from './ui/select/SelectGroup.vue'
 import SelectItem from './ui/select/SelectItem.vue'
 import type { GraphContext } from '../types/graph-context'
 import Input from './ui/input/Input.vue'
@@ -130,7 +124,6 @@ if (!graphContext) {
 const {
   graph,
   dataManager,
-  layout,
   labelThreshold,
   loadMoreBtn,
   nodeSelect,
@@ -158,13 +151,9 @@ const filterNodes = useMemoize((searchVal: string) => {
     return nameMatch || idMatch
   })
 })
-function toggleLayout() {
-  layout.value = layout.value === 'force' ? 'circlepack' : 'force'
-  graph.value?.setLayout(layout.value as 'force' | 'circlepack')
-}
 
 function refreshGraph() {
-  graph.value?.refresh()
+  graph.value?.refreshGraph()
 }
 
 function resetGraph() {

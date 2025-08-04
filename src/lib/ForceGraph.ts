@@ -36,7 +36,6 @@ export class ForceGraph {
 
     this.options = {
       labelThreshold: 1.5,
-      layout: 'force',
       ...options,
     }
 
@@ -49,6 +48,8 @@ export class ForceGraph {
   }
 
   private initGraph() {
+    console.log(this.options.width, this.options.width)
+
     this.graph
       .width(this.options.width ?? 800)
       .height(this.options.height ?? 400)
@@ -92,7 +93,55 @@ export class ForceGraph {
       })
     }
 
-    // Always render nodes with color and labels
+    // Set initial data
+    this.graph.graphData(this.data)
+
+    // Apply initial options
+    this.applyOptions()
+    this.render()
+    // this.refreshGraph();
+
+    // fit to canvas when engine stops
+    this.graph.onEngineStop(() => this.graph.zoomToFit(400))
+    // setTimeout(() => {
+
+    //   this.graph.cooldownTicks(undefined);
+    // }, 100);
+  }
+  public d3() {
+    return this.graph
+  }
+
+  public focusPosition(nodeData: { id?: string; x?: number; y?: number } = {}) {
+    if (!Object.values(nodeData).length) return
+
+    if (nodeData.id) {
+      const { x, y } = this.nodesMap.get(nodeData.id) ?? { x: 0, y: 0 }
+      if (x && y) {
+        nodeData = { x, y }
+      }
+    }
+
+    if (nodeData) {
+      this.graph.centerAt(nodeData.x, nodeData.y, 1000)
+      this.graph.zoom(8, 2000)
+    }
+  }
+
+  public render() {
+    // Default force-directed layout
+    this.graph
+      .d3Force('charge', d3.forceManyBody().strength(-100))
+      .d3Force(
+        'link',
+        d3
+          .forceLink()
+          .id((d) => d.index ?? '')
+          .distance(30),
+      )
+      .d3Force('center', d3.forceCenter())
+  }
+  public applyOptions() {
     this.graph.nodeCanvasObject((node, ctx: CanvasRenderingContext2D, globalScale: number) => {
       const size = this.getNodeSize(node) * 2
       const borderWidth =
@@ -128,66 +177,6 @@ export class ForceGraph {
         ctx.fillText(label, node.x || 0, (node.y || 0) + size + 2)
       }
     })
-
-    // Set initial data
-    this.graph.graphData(this.data)
-
-    // Apply initial options
-    this.applyOptions()
-    // this.refresh();
-
-    // fit to canvas when engine stops
-    this.graph.onEngineStop(() => this.graph.zoomToFit(400))
-    // setTimeout(() => {
-
-    //   this.graph.cooldownTicks(undefined);
-    // }, 100);
-  }
-  public d3() {
-    return this.graph
-  }
-
-  public focusPosition(nodeData: { id?: string; x?: number; y?: number } = {}) {
-    if (!Object.values(nodeData).length) return
-
-    if (nodeData.id) {
-      const { x, y } = this.nodesMap.get(nodeData.id) ?? { x: 0, y: 0 }
-      if (x && y) {
-        nodeData = { x, y }
-      }
-    }
-
-    if (nodeData) {
-      this.graph.centerAt(nodeData.x, nodeData.y, 1000)
-      this.graph.zoom(8, 2000)
-    }
-  }
-
-  private applyOptions() {
-    if (this.options.layout === 'circlepack') {
-      this.applyCirclePackLayout()
-    } else {
-      // Default force-directed layout
-      this.graph
-        .d3Force('charge', d3.forceManyBody().strength(-100))
-        .d3Force(
-          'link',
-          d3
-            .forceLink()
-            .id((d) => d.index ?? '')
-            .distance(30),
-        )
-        .d3Force('center', d3.forceCenter())
-    }
-  }
-
-  private applyCirclePackLayout() {
-    // Implement circle pack layout
-    this.graph.d3Force('charge', d3.forceManyBody<NodeData>().strength(0))
-    this.graph.d3Force('link', null)
-    this.graph.d3Force('center', null)
-    this.graph.d3Force('x', d3.forceX<NodeData>().strength(0.1))
-    this.graph.d3Force('y', d3.forceY<NodeData>().strength(0.1))
   }
 
   private getNodeSize(node: NodeData): number {
@@ -245,7 +234,7 @@ export class ForceGraph {
     }
 
     // Update the graph
-    this.refresh()
+    this.refreshGraph()
     // this.graph.graphData(this.data); // same
   }
 
@@ -298,7 +287,7 @@ export class ForceGraph {
       if (nodeIndex !== -1) {
         this.data.nodes[nodeIndex] = node
       }
-      this.refresh()
+      this.refreshGraph()
       return true
     }
     return false
@@ -316,7 +305,7 @@ export class ForceGraph {
         const targetId = typeof link.target === 'object' ? link.target.id : link.target
         return sourceId.toString() !== nodeId && targetId.toString() !== nodeId
       })
-      this.refresh()
+      this.refreshGraph()
       return true
     }
     return false
@@ -373,25 +362,28 @@ export class ForceGraph {
     }, 500)
   }
 
-  public setLayout(layout: 'force' | 'circlepack') {
-    this.options.layout = layout
-    this.applyOptions()
-    this.refresh()
-  }
-
   public setLabelThreshold(threshold: number) {
     this.options.labelThreshold = threshold
-    this.refresh()
+    this.render()
   }
 
   public setOptions(options: Partial<GraphOptions>) {
     this.options = { ...this.options, ...options }
     this.applyOptions()
-    this.refresh()
   }
 
-  public refresh() {
+  /**
+   * Lightweight refresh - only updates graph data
+   */
+  public refreshGraph() {
     this.graph.graphData(this.data)
+  }
+
+  /**
+   * Complete reinitialization - use when major changes are needed
+   */
+  public reinitialize() {
+    this.initGraph()
   }
 
   public resetGraph() {

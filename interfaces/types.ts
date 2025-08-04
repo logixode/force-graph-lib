@@ -39,7 +39,6 @@ export interface GraphOptions {
   height?: number
   width?: number
   labelThreshold?: number
-  layout?: 'force' | 'circlepack'
   nodeSize?: number | ((node: NodeData) => number)
   linkWidth?: number | ((link: LinkData) => number)
   nodeLabel?: string | ((node: NodeData) => string)
