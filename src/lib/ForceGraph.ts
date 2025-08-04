@@ -73,17 +73,12 @@ export class ForceGraph {
       // Force-directed layout with no collision
       .d3Force(
         'collide',
-        d3.forceCollide<NodeData>().radius((node) => {
-          if (this.options.collide) {
-            return this.options.collide(node)
-          }
-
-          const isTopic = node.type === 'topic' || !node.type
-
-          // if (isTopic) console.log(node)
-
-          return isTopic ? this.getNodeSize(node) * 7 : this.getNodeSize(node) * 3
-        }),
+        this.options.collide
+          ? d3.forceCollide<NodeData>().radius((node) => {
+              if (this.options.collide) return this.options.collide(node)
+              return node.marker.radius
+            })
+          : null,
       )
     // size calculated by node size + math(n) for better performance on first render
     // large size of graph consuming high memory when animating first render
