@@ -12,10 +12,7 @@ export interface DataTransformer {
    * @param platformColors - Color mapping for different platforms
    * @returns Transformed GraphData
    */
-  transformData(
-    rawData: FullResponse<Pagination>,
-    platformColors: Record<string, string>,
-  ): GraphData
+  transformData(rawData: FullResponse<Pagination>): GraphData
 }
 
 /**
@@ -23,10 +20,7 @@ export interface DataTransformer {
  * Handles the current API response format
  */
 export class DefaultDataTransformer implements DataTransformer {
-  transformData(
-    rawData: FullResponse<Pagination>,
-    platformColors: Record<string, string>,
-  ): GraphData {
+  transformData(rawData: FullResponse<Pagination>): GraphData {
     const { data } = rawData
 
     const result: GraphData = { nodes: [], links: [] }
@@ -39,10 +33,7 @@ export class DefaultDataTransformer implements DataTransformer {
         id: node.id.toString(), // Ensure ID is a string
         value: node.value || 1,
         label: node.label || node.name || node.id.toString(),
-        color:
-          node.color ||
-          (node.platform && platformColors[node.platform.toLowerCase()]) ||
-          platformColors.default,
+        color: node.color,
       }))
 
       if (Array.isArray(data.data)) {
@@ -60,10 +51,7 @@ export class DefaultDataTransformer implements DataTransformer {
         id: node.id.toString(),
         value: node.value || 1,
         label: node.label || node.name || node.id.toString(),
-        color:
-          node.color ||
-          (node.platform && platformColors[node.platform.toLowerCase()]) ||
-          platformColors.default,
+        color: node.color,
       }))
 
       if (data && Array.isArray(data.data)) {
@@ -88,7 +76,6 @@ export class DefaultDataTransformer implements DataTransformer {
           platforms.push(platform)
 
           const platformEdges = data.data[platform as keyof typeof data.data]
-          const platformColor = platformColors[platform]
 
           // Process nodes data if available
           if (data && platformNodes) {
@@ -99,7 +86,7 @@ export class DefaultDataTransformer implements DataTransformer {
                   const nodeData = {
                     ...node,
                     label,
-                    color: nodeKey == '0' ? '#000000' : node.color || platformColor,
+                    color: nodeKey == '0' ? '#000000' : node.color,
                     platform,
                     topic,
                     // x:0,
@@ -150,10 +137,7 @@ export class DefaultDataTransformer implements DataTransformer {
  * Simple data transformer for basic node-link format
  */
 export class SimpleDataTransformer implements DataTransformer {
-  transformData(
-    rawData: FullResponse<Pagination>,
-    platformColors: Record<string, string>,
-  ): GraphData {
+  transformData(rawData: FullResponse<Pagination>): GraphData {
     const { data } = rawData
 
     const result: GraphData = { nodes: [], links: [] }
@@ -163,7 +147,7 @@ export class SimpleDataTransformer implements DataTransformer {
       result.nodes = data.nodes.map((node) => ({
         id: node.id.toString(),
         label: node.label || node.title || node.id.toString(),
-        color: node.color || platformColors.default,
+        color: node.color,
         value: node.value || 1,
         ...node,
       }))

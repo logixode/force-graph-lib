@@ -12,25 +12,10 @@ export class DataManager {
   private currentPage: number = 0
   private totalPages?: number
   private isLastPage: boolean = false
-  private platformColors: Record<string, string>
 
-  constructor(
-    fetcher?: DataFetcher,
-    transformer?: DataTransformer,
-    platformColors: Record<string, string> = {},
-  ) {
+  constructor(fetcher?: DataFetcher, transformer?: DataTransformer) {
     this.fetcher = fetcher || new DefaultDataFetcher()
     this.transformer = transformer || new DefaultDataTransformer()
-    this.platformColors = {
-      keyword: '#FA8F21',
-      facebook: '#1877F2',
-      twitter: '#55ACEE',
-      instagram: '#DC2391',
-      youtube: '#F00',
-      tiktok: '#F3F4F6',
-      default: '#999',
-      ...platformColors,
-    }
   }
 
   /**
@@ -64,7 +49,7 @@ export class DataManager {
 
     // Transform the data
     console.time('calculate time transformData')
-    const transformedData = this.transformer.transformData(rawData, this.platformColors)
+    const transformedData = this.transformer.transformData(rawData)
     console.timeEnd('calculate time transformData')
 
     return transformedData
@@ -127,19 +112,5 @@ export class DataManager {
    */
   setTransformer(transformer: DataTransformer): void {
     this.transformer = transformer
-  }
-
-  /**
-   * Update platform colors
-   */
-  setPlatformColors(colors: Record<string, string>): void {
-    this.platformColors = { ...this.platformColors, ...colors }
-  }
-
-  /**
-   * Get current platform colors
-   */
-  getPlatformColors(): Record<string, string> {
-    return { ...this.platformColors }
   }
 }

@@ -18,17 +18,6 @@ export class ForceGraph {
   private isCalculating: boolean = false
   private dataManager?: DataManager
 
-  // Define platform colors
-  private platformColors: Record<string, string> = {
-    keyword: '#FA8F21',
-    facebook: '#1877F2',
-    twitter: '#55ACEE',
-    instagram: '#DC2391',
-    youtube: '#F00',
-    tiktok: '#F3F4F6',
-    default: '#999',
-  }
-
   constructor(
     container: HTMLElement,
     initialData: GraphData = { nodes: [], links: [] },
@@ -54,7 +43,6 @@ export class ForceGraph {
     // Set up data manager if provided
     if (dataManager) {
       this.dataManager = dataManager
-      this.dataManager.setPlatformColors(this.platformColors)
     }
 
     this.initGraph()
@@ -252,11 +240,7 @@ export class ForceGraph {
       const color = this.options.nodeColor(node)
       if (color) return color
     }
-    // Use platform-based coloring if available
-    if (node.platform && this.platformColors[node.platform.toLowerCase()]) {
-      return this.platformColors[node.platform.toLowerCase()]
-    }
-    return node.color || this.platformColors.default
+    return node.color ?? ''
   }
 
   public getNodeById(id: string | number): NodeData | undefined {
@@ -431,7 +415,6 @@ export class ForceGraph {
    */
   public setDataManager(dataManager: DataManager): void {
     this.dataManager = dataManager
-    this.dataManager.setPlatformColors(this.platformColors)
   }
 
   /**
@@ -439,16 +422,6 @@ export class ForceGraph {
    */
   public getDataManager(): DataManager | undefined {
     return this.dataManager
-  }
-
-  /**
-   * Update platform colors for both the graph and DataManager
-   */
-  public setPlatformColors(colors: Record<string, string>): void {
-    this.platformColors = { ...this.platformColors, ...colors }
-    if (this.dataManager) {
-      this.dataManager.setPlatformColors(this.platformColors)
-    }
   }
 
   public destroy() {

@@ -72,6 +72,17 @@ const graph = ref<ForceGraph>()
 const graphContainer = ref<HTMLDivElement>()
 const { width, height } = useElementSize(graphContainer)
 
+// Define platform colors
+const platformColors: Record<string, string> = {
+  keyword: '#FA8F21',
+  facebook: '#1877F2',
+  twitter: '#55ACEE',
+  instagram: '#DC2391',
+  youtube: '#F00',
+  tiktok: '#F3F4F6',
+  default: '#999',
+}
+
 const graphOptions = computed<GraphOptionsType>(() => ({
   width: width.value,
   height: height.value,
@@ -85,6 +96,11 @@ const graphOptions = computed<GraphOptionsType>(() => ({
   },
   nodeColor: (node: NodeData) => {
     if (!node.type) return `#eeed11`
+    // Use platform-based coloring if available
+    else if (node.platform && platformColors[node.platform.toLowerCase()]) {
+      return platformColors[node.platform.toLowerCase()]
+    }
+
     return ''
   },
   cluster: (node: NodeData) => node.sentiment || node.platform,
