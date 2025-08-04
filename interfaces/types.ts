@@ -44,6 +44,8 @@ export interface GraphOptions {
   linkWidth?: number | ((link: LinkData) => number)
   nodeLabel?: string | ((node: NodeData) => string)
   nodeColor?: string | ((node: NodeData) => string)
+  nodeBorderColor?: string | ((node: NodeData) => string)
+  nodeBorderWidth?: number | ((node: NodeData) => number)
   linkLabel?: string | ((link: LinkData) => string)
   nodeIcon?: string | ((node: NodeData) => string)
   cluster?: (node: NodeData) => boolean | undefined | null

@@ -95,10 +95,25 @@ export class ForceGraph {
     // Always render nodes with color and labels
     this.graph.nodeCanvasObject((node, ctx: CanvasRenderingContext2D, globalScale: number) => {
       const size = this.getNodeSize(node) * 2
+      const borderWidth =
+        typeof this.options.nodeBorderWidth === 'function'
+          ? this.options.nodeBorderWidth(node)
+          : this.options.nodeBorderWidth
+
+      // Draw the main node circle
       ctx.beginPath()
       ctx.arc(node.x || 0, node.y || 0, size, 0, 2 * Math.PI)
       ctx.fillStyle = this.getNodeColor(node)
       ctx.fill()
+
+      // Draw the border if border width is greater than 0
+      if (borderWidth && borderWidth > 0) {
+        ctx.beginPath()
+        ctx.arc(node.x || 0, node.y || 0, size, 0, 2 * Math.PI)
+        ctx.strokeStyle = this.getNodeBorderColor(node)
+        ctx.lineWidth = borderWidth
+        ctx.stroke()
+      }
 
       const label = this.getNodeLabel(node)
       if (label && globalScale >= (this.options.labelThreshold || 1.5)) {
@@ -236,6 +251,13 @@ export class ForceGraph {
       if (color) return color
     }
     return node.color ?? ''
+  }
+
+  private getNodeBorderColor(node: NodeData): string {
+    if (typeof this.options.nodeBorderColor === 'function') {
+      return this.options.nodeBorderColor(node)
+    }
+    return this.options.nodeBorderColor || '#333'
   }
 
   public getNodeById(id: string | number): NodeData | undefined {

@@ -83,37 +83,6 @@ const platformColors: Record<string, string> = {
   default: '#999',
 }
 
-const graphOptions = computed<GraphOptionsType>(() => ({
-  width: width.value,
-  height: height.value,
-  // layout: "circlepack",
-  labelThreshold: labelThreshold.value[0],
-  keepDragPosition: true,
-  nodeSize,
-  nodeLabel: (node: NodeData) => {
-    const label = node.label || String(node.id)
-    return `${label}${node.type ? ` (${node.type})` : ''}`
-  },
-  nodeColor: (node: NodeData) => {
-    if (!node.type) return `#eeed11`
-    // Use platform-based coloring if available
-    else if (node.platform && platformColors[node.platform.toLowerCase()]) {
-      return platformColors[node.platform.toLowerCase()]
-    }
-
-    return ''
-  },
-  collide: (node: NodeData) => {
-    const isTopic = node.type === 'topic' || !node.type
-    if (isTopic) return nodeSize(node) * 7
-    else if (node.type === 'post') return nodeSize(node) * 5
-
-    // return nodeSize(node)
-    return 1
-  },
-  cluster: (node: NodeData) => node.sentiment || node.platform,
-}))
-
 const initialData = {
   nodes: [],
   links: [],
@@ -149,6 +118,45 @@ const updateLoadingIndicator = () => {
     populateNodeSelect(nodeSearch.value)
   }
 }
+
+const graphOptions = computed<GraphOptionsType>(() => ({
+  width: width.value,
+  height: height.value,
+  // layout: "circlepack",
+  labelThreshold: labelThreshold.value[0],
+  keepDragPosition: true,
+  nodeSize,
+  nodeLabel: (node: NodeData) => {
+    const label = node.label || String(node.id)
+    return `${label}${node.type ? ` (${node.type})` : ''}`
+  },
+  nodeColor: (node: NodeData) => {
+    if (!node.type) return `#eeed11`
+    // Use platform-based coloring if available
+    else if (node.platform && platformColors[node.platform.toLowerCase()]) {
+      return platformColors[node.platform.toLowerCase()]
+    }
+
+    return ''
+  },
+  nodeBorderColor: 'white',
+  nodeBorderWidth: (node: NodeData) => {
+    // Different border widths based on node importance or type
+    if (node.type === 'topic' || !node.type) return .7
+    else if (node.type == 'repost') return .5
+
+    return 0
+  },
+  collide: (node: NodeData) => {
+    const isTopic = node.type === 'topic' || !node.type
+    if (isTopic) return nodeSize(node) * 7
+    else if (node.type === 'post') return nodeSize(node) * 5
+
+    // return nodeSize(node)
+    return 1
+  },
+  cluster: (node: NodeData) => node.sentiment || node.platform,
+}))
 
 // Provide the graph context to child components
 const graphContext: GraphContext = {
@@ -200,7 +208,8 @@ onMounted(async () => {
 
 function nodeSize(node: NodeData) {
   if (!node.type) return 3
-  else if (node.type === 'post' || node.type == 'repost') return 1.8
+  else if (node.type === 'post') return 1.8
+  else if (node.type == 'repost') return 1.5
   else if (node.type === 'mentions') return 1.3
 
   return 1
