@@ -386,17 +386,30 @@ export class ForceGraph {
     this.initGraph()
   }
 
-  public resetGraph() {
-    this.graph.centerAt(0, 0).zoom(1).graphData(this.data)
-  }
-
   public reset() {
+    // Stop the force simulation completely
+    this.graph.pauseAnimation()
+
+    // Stop the D3 simulation engine
+    const simulation = this.graph.d3Force('simulation')
+    if (simulation) {
+      simulation.stop()
+    }
+
+    // Clear all data structures
     this.data = { nodes: [], links: [] }
     this.nodesMap.clear() // Clear the nodes map as well
+
+    // Reset data manager if available
     if (this.dataManager) {
       this.dataManager.reset()
     }
-    this.graph.graphData(this.data)
+
+    // Reset calculation state
+    this.isCalculating = false
+
+    this.graph = new ForceGraphRenderer(this.container)
+    this.initGraph()
   }
 
   public isLoading(): boolean {

@@ -157,7 +157,7 @@ function refreshGraph() {
 }
 
 function resetGraph() {
-  graph.value?.resetGraph()
+  graph.value?.reset()
 }
 
 async function loadMoreData() {

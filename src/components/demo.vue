@@ -2,7 +2,7 @@
   <div class="">
     <GraphOptions />
 
-    <div class="w-full h-[35rem] bg-primary/20 rounded-md p-2 relative" v-auto-animate>
+    <div class="w-full h-[35rem] bg-card/50 shadow-xl rounded-md p-2 relative" v-auto-animate>
       <div ref="graphContainer" class="w-full h-full" />
 
       <div
@@ -79,10 +79,6 @@ const labelColor = computed(
       light: '#222',
     })[isDark.value ? 'dark' : 'light'],
 )
-// const labelColor = {
-//   dark: '#eee',
-//   light: '#222',
-// }
 
 // Define platform colors
 const platformColors: Record<string, string> = {
