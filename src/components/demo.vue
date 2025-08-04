@@ -103,6 +103,11 @@ const graphOptions = computed<GraphOptionsType>(() => ({
 
     return ''
   },
+  collide: (node: NodeData) => {
+    const isTopic = node.type === 'topic' || !node.type
+
+    return isTopic ? node.marker.radius * 7 : node.marker.radius * 3
+  },
   cluster: (node: NodeData) => node.sentiment || node.platform,
 }))
 
