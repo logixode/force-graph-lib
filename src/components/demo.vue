@@ -89,7 +89,7 @@ const graphOptions = computed<GraphOptionsType>(() => ({
   // layout: "circlepack",
   labelThreshold: labelThreshold.value[0],
   keepDragPosition: true,
-  // nodeSize: (node: NodeData) => node.value ? Math.sqrt(node.value) / 100 + 3 : 3,
+  nodeSize,
   nodeLabel: (node: NodeData) => {
     const label = node.label || String(node.id)
     return `${label}${node.type ? ` (${node.type})` : ''}`
@@ -105,8 +105,11 @@ const graphOptions = computed<GraphOptionsType>(() => ({
   },
   collide: (node: NodeData) => {
     const isTopic = node.type === 'topic' || !node.type
+    if (isTopic) return nodeSize(node) * 7
+    else if (node.type === 'post') return nodeSize(node) * 5
 
-    return isTopic ? node.marker.radius * 7 : node.marker.radius * 3
+    // return nodeSize(node)
+    return 1
   },
   cluster: (node: NodeData) => node.sentiment || node.platform,
 }))
@@ -194,6 +197,14 @@ onMounted(async () => {
   // Set up interval to check loading status
   setInterval(updateLoadingIndicator, 500)
 })
+
+function nodeSize(node: NodeData) {
+  if (!node.type) return 3
+  else if (node.type === 'post' || node.type == 'repost') return 1.8
+  else if (node.type === 'mentions') return 1.3
+
+  return 1
+}
 
 // Function to populate node selectbox
 const populateNodeSelect = (searchTerm: string = '') => {
