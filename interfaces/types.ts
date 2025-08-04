@@ -43,6 +43,7 @@ export interface GraphOptions {
   nodeSize?: number | ((node: NodeData) => number)
   linkWidth?: number | ((link: LinkData) => number)
   nodeLabel?: string | ((node: NodeData) => string)
+  nodeLabelColor?: string | ((node: NodeData) => string)
   nodeColor?: string | ((node: NodeData) => string)
   nodeBorderColor?: string | ((node: NodeData) => string)
   nodeBorderWidth?: number | ((node: NodeData) => number)

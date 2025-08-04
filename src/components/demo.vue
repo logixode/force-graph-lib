@@ -42,10 +42,12 @@ import { DefaultDataFetcher } from '../../interfaces/dataFetcher'
 import { DataManager } from '../../interfaces/dataManager'
 import { DefaultDataTransformer } from '../../interfaces/dataTransformer'
 import { computed, onMounted, provide, ref, watch, type Ref } from 'vue'
-import { useElementSize } from '@vueuse/core'
+import { useDark, useElementSize } from '@vueuse/core'
 import type { GraphOptions as GraphOptionsType, NodeData } from '../../interfaces/types'
 import GraphOptions from './GraphOptions.vue'
 import type { GraphContext } from '../types/graph-context'
+
+const isDark = useDark()
 
 // Graph context state
 const fetchLoading = ref(false)
@@ -71,6 +73,10 @@ const layout = ref<'force' | 'circlepack'>('force')
 const graph = ref<ForceGraph>()
 const graphContainer = ref<HTMLDivElement>()
 const { width, height } = useElementSize(graphContainer)
+const labelColor = {
+  dark: '#eee',
+  light: '#222',
+}
 
 // Define platform colors
 const platformColors: Record<string, string> = {
@@ -130,6 +136,7 @@ const graphOptions = computed<GraphOptionsType>(() => ({
     const label = node.label || String(node.id)
     return `${label}${node.type ? ` (${node.type})` : ''}`
   },
+  nodeLabelColor: labelColor[isDark.value ? 'dark' : 'light'],
   nodeColor: (node: NodeData) => {
     if (!node.type) return `#eeed11`
     // Use platform-based coloring if available
@@ -142,8 +149,8 @@ const graphOptions = computed<GraphOptionsType>(() => ({
   nodeBorderColor: 'white',
   nodeBorderWidth: (node: NodeData) => {
     // Different border widths based on node importance or type
-    if (node.type === 'topic' || !node.type) return .7
-    else if (node.type == 'repost') return .5
+    if (node.type === 'topic' || !node.type) return 0.7
+    else if (node.type == 'repost') return 0.5
 
     return 0
   },

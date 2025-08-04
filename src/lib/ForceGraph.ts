@@ -117,8 +117,12 @@ export class ForceGraph {
 
       const label = this.getNodeLabel(node)
       if (label && globalScale >= (this.options.labelThreshold || 1.5)) {
+        const color =
+          typeof this.options.nodeLabelColor === 'function'
+            ? this.options.nodeLabelColor(node)
+            : (this.options.nodeLabelColor ?? '#555')
         ctx.font = `${Math.max(size, 8)}px Arial`
-        ctx.fillStyle = '#000'
+        ctx.fillStyle = color
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
         ctx.fillText(label, node.x || 0, (node.y || 0) + size + 2)
@@ -259,7 +263,6 @@ export class ForceGraph {
     }
     return this.options.nodeBorderColor || '#333'
   }
-
   public getNodeById(id: string | number): NodeData | undefined {
     return this.nodesMap.get(id.toString())
   }
