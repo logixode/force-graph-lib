@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import AppSidebar from './components/AppSidebar.vue'
+import ApiSettings from './components/ApiSettings.vue'
 import Breadcrumb from './components/ui/breadcrumb/Breadcrumb.vue'
 import BreadcrumbItem from './components/ui/breadcrumb/BreadcrumbItem.vue'
 import BreadcrumbLink from './components/ui/breadcrumb/BreadcrumbLink.vue'
@@ -12,6 +13,8 @@ import SidebarInset from './components/ui/sidebar/SidebarInset.vue'
 import SidebarProvider from './components/ui/sidebar/SidebarProvider.vue'
 import SidebarTrigger from './components/ui/sidebar/SidebarTrigger.vue'
 import ThemeToggle from './components/ThemeToggle.vue'
+import { Toaster } from '@/components/ui/sonner'
+import 'vue-sonner/style.css' // vue-sonner v2 requires this import
 
 // For backward compatibility, still import demo
 // Comment this out if you want to use only the Vue app
@@ -39,11 +42,15 @@ import ThemeToggle from './components/ThemeToggle.vue'
           </BreadcrumbList>
         </Breadcrumb>
 
-        <ThemeToggle class="ml-auto" />
+        <div class="ml-auto flex items-center gap-2">
+          <ApiSettings />
+          <ThemeToggle />
+        </div>
       </header>
 
       <div class="p-4">
         <router-view />
+        <Toaster />
       </div>
     </SidebarInset>
   </SidebarProvider>
