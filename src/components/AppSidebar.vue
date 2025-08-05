@@ -32,6 +32,10 @@ const data = {
           isActive: true,
         },
         {
+          title: 'Curve Examples',
+          url: '/curves',
+        },
+        {
           title: 'About',
           url: '/about',
         },

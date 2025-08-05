@@ -25,6 +25,7 @@ export interface LinkData extends BaseLinkObject<NodeData> {
   target: string | number | NodeData
   weight?: number
   color?: string
+  curvature?: number
   [key: string]: any
 }
 
@@ -53,4 +54,10 @@ export interface GraphOptions {
   loading?: boolean
   keepDragPosition?: boolean
   nodeClickHandler?: (node: NodeData) => void
+  // Link curve options
+  linkCurvature?: number | string | ((link: LinkData) => number)
+  linkDirectionalParticles?: number | ((link: LinkData) => number)
+  linkDirectionalParticleSpeed?: number | ((link: LinkData) => number)
+  linkDirectionalParticleWidth?: number | ((link: LinkData) => number)
+  linkDirectionalParticleColor?: string | ((link: LinkData) => string)
 }

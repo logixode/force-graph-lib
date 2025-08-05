@@ -164,6 +164,7 @@ const graphOptions = computed<GraphOptionsType>(() => ({
     return 1
   },
   cluster: (node: NodeData) => node.sentiment || node.platform,
+  linkCurvature: 0.1,
 }))
 
 // Provide the graph context to child components

@@ -94,7 +94,7 @@ export class ForceGraph {
     }
 
     // Set initial data
-    this.graph.graphData(this.data)
+    this.graphData(this.data)
 
     // Apply initial options
     this.applyOptions()
@@ -108,7 +108,7 @@ export class ForceGraph {
     //   this.graph.cooldownTicks(undefined);
     // }, 100);
   }
-  public d3() {
+  public renderer() {
     return this.graph
   }
 
@@ -177,6 +177,9 @@ export class ForceGraph {
         ctx.fillText(label, node.x || 0, (node.y || 0) + size + 2)
       }
     })
+
+    // Apply curve options
+    this.applyCurveOptions()
   }
 
   private getNodeSize(node: NodeData): number {
@@ -235,7 +238,7 @@ export class ForceGraph {
 
     // Update the graph
     this.refreshGraph()
-    // this.graph.graphData(this.data); // same
+    // this.graphData(this.data); // same
   }
 
   private getNodeColor(node: NodeData): string {
@@ -252,6 +255,64 @@ export class ForceGraph {
     }
     return this.options.nodeBorderColor || '#333'
   }
+
+  private applyCurveOptions() {
+    // Apply link curvature
+    if (this.options.linkCurvature !== undefined) {
+      this.graph.linkCurvature(this.getLinkCurvature.bind(this))
+    }
+
+    // Apply directional particles
+    if (this.options.linkDirectionalParticles) {
+      this.graph.linkDirectionalParticles(
+        (link) => this.getLinkProperty(this.options.linkDirectionalParticles, link) ?? 0,
+      )
+    }
+
+    // Apply directional particle speed
+    if (this.options.linkDirectionalParticleSpeed !== undefined) {
+      this.graph.linkDirectionalParticleSpeed(
+        (link) => this.getLinkProperty(this.options.linkDirectionalParticleSpeed, link) ?? 0,
+      )
+    }
+
+    // Apply directional particle width
+    if (this.options.linkDirectionalParticleWidth !== undefined) {
+      this.graph.linkDirectionalParticleWidth(
+        (link) => this.getLinkProperty(this.options.linkDirectionalParticleWidth, link) ?? 0,
+      )
+    }
+
+    // Apply directional particle color
+    if (this.options.linkDirectionalParticleColor !== undefined) {
+      this.graph.linkDirectionalParticleColor(
+        (link) => this.getLinkProperty(this.options.linkDirectionalParticleColor, link) ?? '#aaa',
+      )
+    }
+  }
+
+  private getLinkCurvature(link: LinkObject<NodeData>): number {
+    if (typeof this.options.linkCurvature === 'function') {
+      return this.options.linkCurvature(link as LinkData)
+    }
+    if (typeof this.options.linkCurvature === 'string') {
+      // If it's a string, treat it as a property name on the link object
+      return (link as any)[this.options.linkCurvature] || 0
+    }
+    if (typeof this.options.linkCurvature === 'number') {
+      return this.options.linkCurvature
+    }
+    // Check if the link has a curvature property
+    return (link as any).curvature || 0
+  }
+
+  private getLinkProperty<T>(option: T | ((link: LinkData) => T), link: LinkObject<NodeData>): T {
+    if (typeof option === 'function') {
+      return (option as (link: LinkData) => T)(link as LinkData)
+    }
+    return option
+  }
+
   public getNodeById(id: string | number): NodeData | undefined {
     return this.nodesMap.get(id.toString())
   }
@@ -354,7 +415,7 @@ export class ForceGraph {
     }
 
     // Update the graph
-    this.graph.graphData(this.data)
+    this.graphData(this.data)
 
     // Fallback to setTimeout to avoid blocking UI
     setTimeout(() => {
@@ -376,7 +437,7 @@ export class ForceGraph {
    * Lightweight refresh - only updates graph data
    */
   public refreshGraph() {
-    this.graph.graphData(this.data)
+    this.graphData(this.data)
   }
 
   /**
@@ -425,6 +486,20 @@ export class ForceGraph {
   }
   public getLinksData(): GraphData['links'] {
     return this.data.links
+  }
+
+  /**
+   * Set graph data (chainable method)
+   * @param data - Graph data to set
+   */
+  public graphData(data: GraphData): ForceGraph {
+    this.data = data
+    this.nodesMap.clear()
+    data.nodes.forEach((node) => {
+      this.nodesMap.set(node.id.toString(), node)
+    })
+    this.graph.graphData(this.data)
+    return this
   }
 
   public getLoadingState(): { isFetching: boolean; isCalculating: boolean } {
