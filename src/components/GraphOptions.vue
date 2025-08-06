@@ -102,21 +102,130 @@
             </ListboxRoot>
           </SelectContent>
         </Select>
+      </div>
 
-        <div class="control-group w-">
-          <label for="threshold-slider-v2">
-            Label Threshold:
-            <span>{{ labelThreshold }}</span>
-          </label>
+      <div>
+        <label for="threshold-slider-v2" class="block text-sm font-medium mb-1">
+          Label Threshold:
+          <span>{{ labelThreshold }}</span>
+        </label>
+        <Slider
+          id="threshold-slider-v2"
+          v-model="labelThreshold"
+          @update:model-value="updateThreshold"
+          :min="0"
+          :max="10"
+          :step="0.1"
+        />
+      </div>
 
-          <Slider
-            id="threshold-slider-v2"
-            v-model="labelThreshold"
-            @update:model-value="updateThreshold"
-            :min="0"
-            :max="10"
-            :step="0.1"
+      <!-- Group Controls Section -->
+      <div class="space-y-4 border-t pt-4">
+        <h3 class="text-lg font-semibold">Group Controls</h3>
+
+        <!-- Enable/Disable Groups -->
+        <div class="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="show-groups-checkbox"
+            v-model="showGroups"
+            @change="toggleGroups"
+            class="rounded"
           />
+          <label for="show-groups-checkbox" class="text-sm font-medium">Show Groups</label>
+        </div>
+
+        <!-- Group By Options -->
+        <div class="space-y-2">
+          <label class="block text-sm font-medium">Group By:</label>
+          <Select
+            v-model="groupByOption"
+            @update:modelValue="changeGroupBy"
+            :disabled="!showGroups"
+          >
+            <SelectTrigger class="w-full">
+              <SelectValue placeholder="Select grouping criteria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="topic">Topic</SelectItem>
+              <SelectItem value="platform">Platform</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <!-- Group Style Options -->
+        <div class="space-y-3 grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">
+              Border Width: <span class="text-xs text-gray-500">{{ groupBorderWidth[0] }}px</span>
+            </label>
+            <Slider
+              v-model="groupBorderWidth"
+              @update:model-value="updateGroupStyle"
+              :min="1"
+              :max="5"
+              :step="1"
+              :disabled="!showGroups"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">
+              Border Opacity:
+              <span class="text-xs text-gray-500">{{ groupBorderOpacity[0] }}</span>
+            </label>
+            <Slider
+              v-model="groupBorderOpacity"
+              @update:model-value="updateGroupStyle"
+              :min="0.1"
+              :max="1"
+              :step="0.1"
+              :disabled="!showGroups"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">
+              Label Size: <span class="text-xs text-gray-500">{{ groupLabelSize[0] }}px</span>
+            </label>
+            <Slider
+              v-model="groupLabelSize"
+              @update:model-value="updateGroupStyle"
+              :min="12"
+              :max="24"
+              :step="1"
+              :disabled="!showGroups"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">
+              Padding: <span class="text-xs text-gray-500">{{ groupPadding[0] }}px</span>
+            </label>
+            <Slider
+              v-model="groupPadding"
+              @update:model-value="updateGroupStyle"
+              :min="10"
+              :max="50"
+              :step="5"
+              :disabled="!showGroups"
+            />
+          </div>
+        </div>
+
+        <!-- Group Information -->
+        <div v-if="showGroups && groups.length > 0" class="space-y-2">
+          <h4 class="text-sm font-medium">Groups ({{ groups.length }})</h4>
+          <div class="space-y-1 max-h-32 overflow-y-auto">
+            <div
+              v-for="group in groups"
+              :key="group.id"
+              class="flex justify-between items-center p-2 bg-muted rounded text-xs"
+            >
+              <span class="font-medium">{{ group.id }}</span>
+              <span class="text-muted-foreground">{{ group.nodeCount }} nodes</span>
+            </div>
+          </div>
         </div>
       </div>
     </CollapsibleContent>
@@ -124,7 +233,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, inject, watch, onUnmounted } from 'vue'
+import { ref, inject, watch, onUnmounted, computed } from 'vue'
 import Collapsible from './ui/collapsible/Collapsible.vue'
 import CollapsibleTrigger from './ui/collapsible/CollapsibleTrigger.vue'
 import Button from './ui/button/Button.vue'
@@ -142,7 +251,7 @@ import InputGroup from './ui/input/InputGroup.vue'
 import { ListboxContent, ListboxRoot, ListboxVirtualizer } from 'reka-ui'
 import { useDebounceFn, useMemoize } from '@vueuse/core'
 import { useFetchGraph } from '@/composeables/useFetchGraph'
-import type { GraphData } from 'interfaces/types'
+import type { GraphData, NodeData } from 'interfaces/types'
 
 // Inject the graph context from parent component
 const graphContext = inject<GraphContext>('graphContext')
@@ -176,6 +285,25 @@ const searchDebounce = useDebounceFn((val) => {
 const isAutoLoading = ref(false)
 const autoLoadInterval = ref<NodeJS.Timeout | null>(null)
 const autoLoadDelay = 2000 // 2 seconds between auto loads
+
+// Group controls state
+const showGroups = ref(false)
+const groupByOption = ref('topic')
+const groupBorderWidth = ref([2])
+const groupBorderOpacity = ref([0.4])
+const groupLabelSize = ref([18])
+const groupPadding = ref([25])
+
+// Computed properties
+const groups = computed(() => {
+  if (!graph.value || !showGroups.value) return []
+
+  const groupIds = graph.value.getGroups()
+  return groupIds.map((id) => ({
+    id,
+    nodeCount: graph.value!.getNodesInGroup(id).length,
+  }))
+})
 
 // Methods
 const filterNodes = useMemoize((searchVal: string) => {
@@ -295,7 +423,38 @@ function stopAutoLoad() {
     autoLoadInterval.value = null
   }
   console.log('Auto-load stopped')
- }
+}
+
+// Group control methods
+function toggleGroups() {
+  if (graph.value) {
+    graph.value.showGroups(showGroups.value)
+  }
+}
+
+function changeGroupBy() {
+  if (!graph.value) return
+
+  switch (groupByOption.value) {
+    case 'platform':
+      graph.value.setGroupBy('platform')
+      break
+    case 'topic':
+      graph.value.setGroupBy('topic')
+      break
+  }
+}
+
+function updateGroupStyle() {
+  if (!graph.value) return
+
+  graph.value.setGroupOptions({
+    borderWidth: Number(groupBorderWidth.value[0]),
+    borderOpacity: Number(groupBorderOpacity.value[0]),
+    labelSize: Number(groupLabelSize.value[0]),
+    padding: Number(groupPadding.value[0]),
+  })
+}
 
 // Cleanup on component unmount
 onUnmounted(() => {

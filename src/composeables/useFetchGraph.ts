@@ -112,7 +112,7 @@ async function fetchGraphData(
   const url = new URL(endpoint)
   url.search = new URLSearchParams({
     page: pageNum.toString(),
-    size: '4',
+    size: '100',
     sentiment_selected: 'linguistik',
     dateStart: '2025-07-05',
     dateStop: '2025-08-05',

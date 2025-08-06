@@ -16,6 +16,7 @@ export interface NodeData extends BaseNodeObject {
   label?: string
   platform?: string
   type?: string
+  topic?: string // Added for grouping functionality
   [key: string]: any
 }
 
@@ -60,4 +61,14 @@ export interface GraphOptions {
   linkDirectionalParticleSpeed?: number | ((link: LinkData) => number)
   linkDirectionalParticleWidth?: number | ((link: LinkData) => number)
   linkDirectionalParticleColor?: string | ((link: LinkData) => string)
+  // Group visualization options
+  showGroups?: boolean
+  groupBy?: string | ((node: NodeData) => string | undefined)
+  groupBorderColor?: string | ((groupId: string) => string)
+  groupBorderWidth?: number
+  groupBorderOpacity?: number
+  groupLabelColor?: string | ((groupId: string) => string)
+  groupLabelSize?: number
+  groupLabelThreshold?: number // Zoom level threshold for showing group labels
+  groupPadding?: number // Padding around group boundaries
 }

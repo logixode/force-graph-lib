@@ -137,6 +137,16 @@ const updateLoadingIndicator = () => {
 const graphOptions = computed<GraphOptionsType>(() => ({
   width: width.value,
   height: height.value,
+
+  groupBorderColor: (val) => {
+    try {
+      if (val && platformColors[val.toLowerCase()]) {
+        return platformColors[val.toLowerCase()]
+      }
+    } catch (err) {}
+    return '#666'
+  },
+
   labelThreshold: labelThreshold.value[0],
   keepDragPosition: true,
   linkWidth: 0.4,

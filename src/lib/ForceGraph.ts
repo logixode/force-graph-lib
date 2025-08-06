@@ -15,6 +15,10 @@ export class ForceGraph {
   private linkMap: Map<string, LinkData> = new Map()
   private options: GraphOptions
   private worker: Worker | null = null
+  private groupBounds: Map<
+    string,
+    { minX: number; minY: number; maxX: number; maxY: number; nodes: NodeData[] }
+  > = new Map()
 
   constructor(
     container: HTMLElement,
@@ -31,9 +35,28 @@ export class ForceGraph {
       this.nodesMap.set(node.id.toString(), node)
     })
 
-    this.options = {
+    // Base options without group defaults
+    const baseOptions = {
       labelThreshold: 1.5,
+      showGroups: false,
       ...options,
+    }
+
+    // Only add group defaults if grouping is enabled
+    const groupDefaults = baseOptions.showGroups ? {
+      groupBy: 'topic',
+      groupBorderColor: '#666',
+      groupBorderWidth: 2,
+      groupBorderOpacity: 0.3,
+      groupLabelColor: '#333',
+      groupLabelSize: 16,
+      groupLabelThreshold: 0.8,
+      groupPadding: 20,
+    } : {}
+
+    this.options = {
+      ...baseOptions,
+      ...groupDefaults,
     }
 
     this.initGraph()
@@ -134,7 +157,13 @@ export class ForceGraph {
       .d3Force('center', d3.forceCenter())
   }
   public applyOptions() {
+    // Set up canvas object rendering for both groups and nodes
     this.graph.nodeCanvasObject((node, ctx: CanvasRenderingContext2D, globalScale: number) => {
+      // Render groups first (only once per frame, not per node)
+      if (node === this.data.nodes[0]) {
+        this.renderGroups(ctx, globalScale)
+      }
+
       const size = this.getNodeSize(node) * 2
       const borderWidth =
         typeof this.options.nodeBorderWidth === 'function'
@@ -298,6 +327,156 @@ export class ForceGraph {
       return (option as (link: LinkData) => T)(link as LinkData)
     }
     return option
+  }
+
+  /**
+   * Calculate group boundaries based on node positions
+   */
+  private calculateGroupBounds(): void {
+    if (!this.options.showGroups) return
+
+    this.groupBounds.clear()
+    const padding = this.options.groupPadding || 20
+
+    // Group nodes by the specified property
+    const groups: Map<string, NodeData[]> = new Map()
+
+    this.data.nodes.forEach((node) => {
+      const groupId = this.getNodeGroupId(node)
+      if (groupId) {
+        if (!groups.has(groupId)) {
+          groups.set(groupId, [])
+        }
+        groups.get(groupId)!.push(node)
+      }
+    })
+
+    // Calculate bounds for each group
+    groups.forEach((nodes, groupId) => {
+      if (nodes.length === 0) return
+
+      let minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity
+
+      nodes.forEach((node) => {
+        if (node.x !== undefined && node.y !== undefined) {
+          const nodeSize = this.getNodeSize(node)
+          minX = Math.min(minX, node.x - nodeSize)
+          minY = Math.min(minY, node.y - nodeSize)
+          maxX = Math.max(maxX, node.x + nodeSize)
+          maxY = Math.max(maxY, node.y + nodeSize)
+        }
+      })
+
+      if (minX !== Infinity) {
+        this.groupBounds.set(groupId, {
+          minX: minX - padding,
+          minY: minY - padding,
+          maxX: maxX + padding,
+          maxY: maxY + padding,
+          nodes,
+        })
+      }
+    })
+  }
+
+  /**
+   * Get the group ID for a node
+   */
+  private getNodeGroupId(node: NodeData): string | undefined {
+    if (!this.options.groupBy) return undefined
+
+    if (typeof this.options.groupBy === 'function') {
+      return this.options.groupBy(node)
+    }
+
+    if (typeof this.options.groupBy === 'string') {
+      return (node as any)[this.options.groupBy]
+    }
+
+    return undefined
+  }
+
+  /**
+   * Render group borders and labels
+   */
+  private renderGroups(ctx: CanvasRenderingContext2D, globalScale: number): void {
+    if (!this.options.showGroups) return
+
+    this.calculateGroupBounds()
+
+    this.groupBounds.forEach((bounds, groupId) => {
+      const borderColor = this.getGroupBorderColor(groupId)
+      const borderWidth = this.options.groupBorderWidth || 2
+      const borderOpacity = this.options.groupBorderOpacity || 0.3
+
+      // Draw group border
+      ctx.save()
+      ctx.globalAlpha = borderOpacity
+      ctx.strokeStyle = borderColor
+      ctx.lineWidth = borderWidth / globalScale
+      ctx.setLineDash([10 / globalScale, 5 / globalScale]) // Dashed border
+      ctx.strokeRect(bounds.minX, bounds.minY, bounds.maxX - bounds.minX, bounds.maxY - bounds.minY)
+      ctx.restore()
+
+      // Draw group label when zoomed out
+      const labelThreshold = this.options.groupLabelThreshold || 0.8
+      if (globalScale <= labelThreshold) {
+        const labelColor = this.getGroupLabelColor(groupId)
+        const labelSize = (this.options.groupLabelSize || 16) / globalScale
+
+        ctx.save()
+        ctx.font = `bold ${labelSize}px Arial`
+        ctx.fillStyle = labelColor
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+
+        // Position label at the top center of the group
+        const labelX = (bounds.minX + bounds.maxX) / 2
+        const labelY = bounds.minY - labelSize / 2
+
+        // Draw background for better readability
+        const textMetrics = ctx.measureText(groupId)
+        const textWidth = textMetrics.width
+        const textHeight = labelSize
+
+        ctx.globalAlpha = 0.8
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+        ctx.fillRect(
+          labelX - textWidth / 2 - 4,
+          labelY - textHeight / 2 - 2,
+          textWidth + 8,
+          textHeight + 4,
+        )
+
+        ctx.globalAlpha = 1
+        ctx.fillStyle = labelColor
+        ctx.fillText(groupId, labelX, labelY)
+        ctx.restore()
+      }
+    })
+  }
+
+  /**
+   * Get group border color
+   */
+  private getGroupBorderColor(groupId: string): string {
+    if (typeof this.options.groupBorderColor === 'function') {
+      return this.options.groupBorderColor(groupId)
+    }
+    return this.options.groupBorderColor || '#666'
+  }
+
+  /**
+   * Get group label color
+   */
+  private getGroupLabelColor(groupId: string): string {
+    if (typeof this.options.groupLabelColor === 'function') {
+      return this.options.groupLabelColor(groupId)
+    }
+    return this.options.groupLabelColor || '#333'
   }
 
   public getNodeById(id: string | number): NodeData | undefined {
@@ -515,6 +694,105 @@ export class ForceGraph {
 
     this.graph.graphData(this.data)
     return this
+  }
+
+  /**
+   * Enable or disable group visualization
+   */
+  public showGroups(show: boolean): ForceGraph {
+    this.options.showGroups = show
+    
+    // If enabling groups and group defaults are not set, apply them
+    if (show) {
+      const groupDefaults = {
+        groupBy: 'topic',
+        groupBorderColor: '#666',
+        groupBorderWidth: 2,
+        groupBorderOpacity: 0.3,
+        groupLabelColor: '#333',
+        groupLabelSize: 16,
+        groupLabelThreshold: 0.8,
+        groupPadding: 20,
+      }
+      
+      // Only set defaults for properties that are undefined
+      Object.entries(groupDefaults).forEach(([key, value]) => {
+        if (this.options[key as keyof GraphOptions] === undefined) {
+          (this.options as any)[key] = value
+        }
+      })
+    }
+    
+    this.applyOptions()
+    // Force a refresh to immediately show/hide groups
+    this.refreshGraph()
+    return this
+  }
+
+  /**
+   * Set the property to group nodes by
+   */
+  public setGroupBy(groupBy: string | ((node: NodeData) => string | undefined)): ForceGraph {
+    this.options.groupBy = groupBy
+    this.applyOptions()
+    // Force a refresh to immediately update grouping
+    this.refreshGraph()
+    return this
+  }
+
+  /**
+   * Set group visualization options
+   */
+  public setGroupOptions(options: {
+    borderColor?: string | ((groupId: string) => string)
+    borderWidth?: number
+    borderOpacity?: number
+    labelColor?: string | ((groupId: string) => string)
+    labelSize?: number
+    labelThreshold?: number
+    padding?: number
+  }): ForceGraph {
+    if (options.borderColor !== undefined) this.options.groupBorderColor = options.borderColor
+    if (options.borderWidth !== undefined) this.options.groupBorderWidth = options.borderWidth
+    if (options.borderOpacity !== undefined) this.options.groupBorderOpacity = options.borderOpacity
+    if (options.labelColor !== undefined) this.options.groupLabelColor = options.labelColor
+    if (options.labelSize !== undefined) this.options.groupLabelSize = options.labelSize
+    if (options.labelThreshold !== undefined)
+      this.options.groupLabelThreshold = options.labelThreshold
+    if (options.padding !== undefined) this.options.groupPadding = options.padding
+
+    this.applyOptions()
+    // Force a refresh to immediately update group styling
+    this.refreshGraph()
+    return this
+  }
+
+  /**
+   * Get all available groups
+   */
+  public getGroups(): string[] {
+    const groups = new Set<string>()
+    this.data.nodes.forEach((node) => {
+      const groupId = this.getNodeGroupId(node)
+      if (groupId) {
+        groups.add(groupId)
+      }
+    })
+    return Array.from(groups)
+  }
+
+  /**
+   * Get nodes in a specific group
+   */
+  public getNodesInGroup(groupId: string): NodeData[] {
+    return this.data.nodes.filter((node) => this.getNodeGroupId(node) === groupId)
+  }
+
+  /**
+   * Get current options
+   */
+  public getOptions(): GraphOptions {
+    return { ...this.options }
   }
 
   public destroy() {
