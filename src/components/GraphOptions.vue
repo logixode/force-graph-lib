@@ -29,6 +29,30 @@
             {{ loadMoreBtn.text }}
           </Button>
         </div>
+
+        <div class="control-group">
+          <Button
+            id="auto-load-btn-v2"
+            :disabled="!loadMoreBtn.status || isFetching || isAutoLoading"
+            @click="startAutoLoad"
+            variant="outline"
+          >
+            <Play class="h-4 w-4 mr-1" />
+            Auto Load
+          </Button>
+        </div>
+
+        <div class="control-group">
+          <Button
+            id="stop-auto-load-btn-v2"
+            :disabled="!isAutoLoading"
+            @click="stopAutoLoad"
+            variant="destructive"
+          >
+            <Square class="h-4 w-4 mr-1" />
+            Stop Auto
+          </Button>
+        </div>
       </div>
 
       <div class="flex gap-2 flex-wrap">
@@ -100,11 +124,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, inject, watch } from 'vue'
+import { ref, inject, watch, onUnmounted } from 'vue'
 import Collapsible from './ui/collapsible/Collapsible.vue'
 import CollapsibleTrigger from './ui/collapsible/CollapsibleTrigger.vue'
 import Button from './ui/button/Button.vue'
-import { ChevronsUpDown, Search } from 'lucide-vue-next'
+import { ChevronsUpDown, Search, Play, Square } from 'lucide-vue-next'
 import CollapsibleContent from './ui/collapsible/CollapsibleContent.vue'
 import Slider from './ui/slider/Slider.vue'
 import Select from './ui/select/Select.vue'
@@ -147,6 +171,11 @@ const filteredNodes = ref<typeof nodeSelect.value.options>(nodeSelect.value.opti
 const searchDebounce = useDebounceFn((val) => {
   filteredNodes.value = filterNodes(val)
 }, 350)
+
+// Auto-loading state
+const isAutoLoading = ref(false)
+const autoLoadInterval = ref<NodeJS.Timeout | null>(null)
+const autoLoadDelay = 2000 // 2 seconds between auto loads
 
 // Methods
 const filterNodes = useMemoize((searchVal: string) => {
@@ -225,4 +254,51 @@ function focusOnNode(nodeId: string) {
     console.error('Node not found or invalid ID provided.')
   }
 }
+
+async function startAutoLoad() {
+  if (isAutoLoading.value) return
+
+  isAutoLoading.value = true
+  console.log('Starting auto-load...')
+
+  const autoLoadNext = async () => {
+    try {
+      // Check if we can still load more data
+      if (!loadMoreBtn.value.status || isFetching.value) {
+        console.log('Auto-load stopped: no more data available or currently fetching')
+        stopAutoLoad()
+        return
+      }
+
+      await loadMoreData()
+
+      // Schedule next load if still auto-loading
+      if (isAutoLoading.value) {
+        autoLoadInterval.value = setTimeout(autoLoadNext, autoLoadDelay)
+      }
+    } catch (error) {
+      console.error('Auto-load error:', error)
+      stopAutoLoad()
+    }
+  }
+
+  // Start the first auto-load
+  autoLoadInterval.value = setTimeout(autoLoadNext, autoLoadDelay)
+}
+
+function stopAutoLoad() {
+  if (!isAutoLoading.value) return
+
+  isAutoLoading.value = false
+  if (autoLoadInterval.value) {
+    clearTimeout(autoLoadInterval.value)
+    autoLoadInterval.value = null
+  }
+  console.log('Auto-load stopped')
+ }
+
+// Cleanup on component unmount
+onUnmounted(() => {
+  stopAutoLoad()
+})
 </script>
