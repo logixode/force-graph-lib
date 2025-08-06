@@ -2947,7 +2947,7 @@ const res: FullResponse<Pagination> = {
       dataTotal: 1972,
       perPage: 4,
       pageCurrent: 5,
-      pageLast: 493,
+      pageLast: 5,
       navigation: {
         prevUrl:
           'geapi/v1/post/top-keywords?page=4&keywords=%5B%22manchester+united%22%2C%22Emiliano+Mart%C3%ADnez%22%2C%22Aston+Villa%22%2C%22transfer%22%2C%22negotiations%22%2C%22Emi+Martinez%22%2C%22MUFC%22%2C%22Emi+Mart%C3%ADnez%22%2C%22Manchester+City%22%2C%22Viktor+Gy%C3%B6keres%22%2C%22talks%22%2C%22Arsenal%22%2C%22Premier+League%22%5D&dateStart=2025-06-07&dateStop=2025-07-07&sentiment=%5B-1%2C0%2C1%5D&prokontra=%5B-1%2C0%2C1%5D&platforms=%5B%22facebook%22%2C%22instagram%22%2C%22tiktok%22%2C%22twitter%22%2C%22youtube%22%5D&size=4&sentiment_opt=linguistik',

@@ -1,5 +1,11 @@
 import type { GraphData } from './types'
-import type { FullResponse, Pagination } from './graphResponse'
+import type {
+  EdgesItem,
+  FullResponse,
+  NodesItem,
+  Pagination,
+  TopicPlatformData,
+} from './graphResponse'
 
 /**
  * Interface for data transformation implementations
@@ -30,9 +36,8 @@ export class DefaultDataTransformer implements DataTransformer {
       // Standard format with nodes and links arrays
       result.nodes = data.nodes.map((node) => ({
         ...node,
-        id: node.id.toString(), // Ensure ID is a string
-        value: node.value || 1,
-        label: node.label || node.name || node.id.toString(),
+        id: node.id.toString(),
+        label: node.label ?? node.title,
         color: node.color,
       }))
 
@@ -41,95 +46,50 @@ export class DefaultDataTransformer implements DataTransformer {
           ...link,
           source: link.source.toString(),
           target: link.target.toString(),
-          weight: link.weight || 1,
-        }))
-      }
-    } else if (data && Array.isArray(data.nodes)) {
-      // Format with data wrapper
-      result.nodes = data.nodes.map((node) => ({
-        ...node,
-        id: node.id.toString(),
-        value: node.value || 1,
-        label: node.label || node.name || node.id.toString(),
-        color: node.color,
-      }))
-
-      if (data && Array.isArray(data.data)) {
-        result.links = data.data.map((link) => ({
-          ...link,
-          source: link.source.toString(),
-          target: link.target.toString(),
-          weight: link.weight || 1,
         }))
       }
     } else {
-      // Process data structure - handle both data.topic and direct topic arrays
-      // Nodes is a Record<Platform, TopicItems<NodesItem>> not an array, so we need to process it differently
-      const flattenNodes: Record<string, unknown>[] = []
-      const flattenEges: Record<string, unknown>[] = []
-      const topicNodes: Record<string, unknown>[] = []
-      const platforms: string[] = []
+      result.nodes = this.flattenTopicPlatform(data.nodes).map((node) => ({
+        ...node,
+        label: node.label ?? node.title,
+        id: node.id.toString(),
+      }))
+      result.links = this.flattenTopicPlatform(data.data).map(
+        ({ color, platform, from, to, topic }) => ({
+          color,
+          platform,
+          topic,
+          source: from,
+          target: to,
+        }),
+      )
 
-      // Process nodes from each platform according to the interface structure
-      if (data.nodes && data.data) {
-        Object.entries(data.nodes).forEach(([platform, platformNodes]) => {
-          platforms.push(platform)
-
-          const platformEdges = data.data[platform as keyof typeof data.data]
-
-          // Process nodes data if available
-          if (data && platformNodes) {
-            Object.entries(platformNodes).forEach(([topic, nodesItem]) => {
-              if (nodesItem) {
-                Object.entries(nodesItem).forEach(([nodeKey, node]) => {
-                  const label = node.label ?? node.title
-                  const nodeData = {
-                    ...node,
-                    label,
-                    color: nodeKey == '0' ? '#000000' : node.color,
-                    platform,
-                    topic,
-                    // x:0,
-                    // y:0,
-                  }
-
-                  if (nodeKey == '0') topicNodes.push(nodeData)
-                  else flattenNodes.push(nodeData)
-
-                  result.nodes.push(nodeData)
-                })
-              }
-            })
-          }
-
-          // Process edges data if available
-          if (data.data && platformEdges) {
-            Object.entries(platformEdges).forEach(([topic, edgesItem]) => {
-              if (edgesItem) {
-                Object.values(edgesItem).forEach((edge) => {
-                  if (edge && edge.from && edge.to) {
-                    const linkData = {
-                      source: edge.from,
-                      target: edge.to,
-                      color: edge.color,
-                      platform,
-                      topic,
-                    }
-                    result.links.push(linkData)
-                    flattenEges.push(linkData)
-                  }
-                })
-              }
-            })
-          }
-        })
-      }
-
-      console.log('nodes', result.nodes)
-      console.log('links', result.links)
+      // console.log('nodes', result.nodes)
+      // console.log('links', result.links)
     }
 
     return result
+  }
+  flattenTopicPlatform(
+    data: TopicPlatformData<NodesItem> | TopicPlatformData<EdgesItem>,
+  ): Record<string, any>[] {
+    const flattenItem: Record<string, any>[] = []
+
+    Object.entries(data).forEach(
+      ([platform, platformData]: [string, TopicPlatformData<EdgesItem>]) => {
+        Object.entries(platformData).forEach(([topic, topicItem]) => {
+          Object.values(topicItem).forEach((item) => {
+            flattenItem.push({ ...item, topic, platform })
+            const isObj = (obj: any) => typeof obj === 'object' && obj !== null
+            if (isObj(item.from) && isObj(item.to)) {
+              console.log('item', item.from, item.to)
+            }
+          })
+        })
+      },
+    )
+
+    return flattenItem
   }
 }
 

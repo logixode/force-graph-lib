@@ -71,7 +71,7 @@
                   Token: {{ setting.accessToken.substring(0, 30) }}...
                 </p>
                 <p class="text-xs text-muted-foreground">
-                  {{ formatDate(setting.savedAt) }}
+                  {{ useTimeAgo(setting.savedAt) }}
                 </p>
               </div>
               <Button
@@ -118,6 +118,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useTimeAgo } from '@vueuse/core'
 
 // Types
 interface HistorySetting {
@@ -202,10 +203,6 @@ const applyHistorySetting = (setting: HistorySetting) => {
   formData.value.endpoint = setting.endpoint
   formData.value.accessToken = setting.accessToken
   showToken.value = false // Hide token for security
-
-  toast.success('Settings applied!', {
-    description: 'Historical settings have been loaded into the form.',
-  })
 }
 
 // Remove setting from history
@@ -216,23 +213,6 @@ const removeHistorySetting = (index: number) => {
   toast.success('History item removed!', {
     description: 'The setting has been removed from history.',
   })
-}
-
-// Format date for display
-const formatDate = (timestamp: number) => {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / (1000 * 60))
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-  if (diffMins < 1) return 'Just now'
-  if (diffMins < 60) return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays < 7) return `${diffDays}d ago`
-
-  return date.toLocaleDateString()
 }
 
 // Save settings to localStorage

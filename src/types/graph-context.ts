@@ -1,9 +1,11 @@
 import type { Ref } from 'vue'
 import type { ForceGraph } from '../lib/ForceGraph'
 import type { DataManager } from '../../interfaces/dataManager'
+import type { Pagination } from 'interfaces/graphResponse'
 
 export interface GraphContext {
   graph: Ref<ForceGraph | undefined>
+  pagination: Ref<Pagination | null>
   dataManager: Ref<DataManager | undefined>
   labelThreshold: Ref<number[]>
   loadMoreBtn: Ref<{

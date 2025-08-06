@@ -30,6 +30,7 @@
   "dependencies": {
     "@formkit/auto-animate": "^0.8.2",
     "@tailwindcss/vite": "^4.1.11",
+    "@tanstack/vue-query": "^5.83.1",
     "@vueuse/core": "^13.6.0",
     "axios": "^1.11.0",
     "class-variance-authority": "^0.7.1",

@@ -2,7 +2,6 @@ import ForceGraphRenderer from 'force-graph'
 import type { LinkObject } from 'force-graph'
 import * as d3 from 'd3'
 import type { GraphData, GraphOptions, NodeData, LinkData } from '../../interfaces/types'
-import { DataManager } from '../../interfaces/dataManager'
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
@@ -13,23 +12,21 @@ export class ForceGraph {
   private graph: ForceGraphRenderer<NodeData, LinkObject<NodeData>>
   private data: GraphData = { nodes: [], links: [] }
   private nodesMap: Map<string, NodeData> = new Map()
+  private linkMap: Map<string, LinkData> = new Map()
   private options: GraphOptions
   private worker: Worker | null = null
-  private isCalculating: boolean = false
-  private dataManager?: DataManager
 
   constructor(
     container: HTMLElement,
     initialData: GraphData = { nodes: [], links: [] },
     options: GraphOptions = {},
-    dataManager?: DataManager,
   ) {
     this.container = container
     this.data = initialData
     this.graph = new ForceGraphRenderer(this.container)
 
     // Initialize nodesMap with initial data for fast lookups
-    this.nodesMap = new Map()
+    // this.nodesMap = new Map()
     initialData.nodes.forEach((node) => {
       this.nodesMap.set(node.id.toString(), node)
     })
@@ -37,11 +34,6 @@ export class ForceGraph {
     this.options = {
       labelThreshold: 1.5,
       ...options,
-    }
-
-    // Set up data manager if provided
-    if (dataManager) {
-      this.dataManager = dataManager
     }
 
     this.initGraph()
@@ -66,7 +58,7 @@ export class ForceGraph {
       // .d3AlphaDecay(0)
       // .d3VelocityDecay(0.08)
       // .cooldownTicks(0)
-      .cooldownTime(3000)
+      .cooldownTime(this.calculateCooldownTime())
       .d3Force(
         'cluster',
         this.options.cluster ? d3ForceClustering().clusterId(this.options.cluster) : null,
@@ -178,8 +170,8 @@ export class ForceGraph {
       }
     })
 
-    // Apply curve options
-    this.applyCurveOptions()
+    // Apply link options
+    this.applyLinkOptions()
   }
 
   private getNodeSize(node: NodeData): number {
@@ -210,24 +202,14 @@ export class ForceGraph {
       this.nodesMap.set(node.id.toString(), node)
     })
 
-    // Create a unique key for each link
-    const createLinkKey = (
-      source: string | number | NodeData,
-      target: string | number | NodeData,
-    ) => {
-      const sourceId = typeof source === 'object' ? source.id : source
-      const targetId = typeof target === 'object' ? target.id : target
-      return `${sourceId}-${targetId}`
-    }
-
     // Create a map of existing links
     const existingLinkKeys = new Set(
-      this.data.links.map((link) => createLinkKey(link.source, link.target)),
+      this.data.links.map((link) => this.createLinkKey(link.source, link.target)),
     )
 
     // Filter out duplicate links
     const newLinks = data.links.filter(
-      (link) => !existingLinkKeys.has(createLinkKey(link.source, link.target)),
+      (link) => !existingLinkKeys.has(this.createLinkKey(link.source, link.target)),
     )
 
     // Update the data
@@ -256,7 +238,12 @@ export class ForceGraph {
     return this.options.nodeBorderColor || '#333'
   }
 
-  private applyCurveOptions() {
+  private applyLinkOptions() {
+    // Apply link width
+    if (this.options.linkWidth !== undefined) {
+      this.graph.linkWidth((link) => this.getLinkProperty(this.options.linkWidth, link) ?? 1)
+    }
+
     // Apply link curvature
     if (this.options.linkCurvature !== undefined) {
       this.graph.linkCurvature(this.getLinkCurvature.bind(this))
@@ -324,6 +311,37 @@ export class ForceGraph {
   public getNodeCount(): number {
     return this.nodesMap.size
   }
+
+  /**
+   * Calculate dynamic cooldown time based on node count
+   * Minimum: 2500ms
+   * Normal: node.length * 150ms
+   */
+  private calculateCooldownTime(): number {
+    const nodeCount = this.data.nodes.length
+    const calculatedTime = (nodeCount * 5) / 2
+    const finalCooldownTime = Math.max(2500, calculatedTime)
+
+    console.log(
+      `Dynamic Cooldown Time: ${nodeCount} nodes × 150ms = ${calculatedTime}ms, final: ${finalCooldownTime}ms`,
+    )
+
+    return finalCooldownTime
+  }
+
+  /**
+   * Get the current calculated cooldown time
+   */
+  public getCooldownTime(): number {
+    return this.calculateCooldownTime()
+  }
+
+  /**
+   * Manually update the cooldown time based on current node count
+   */
+  public updateCooldownTime(): void {
+    this.graph.cooldownTime(this.calculateCooldownTime())
+  }
   public getLinkCount(): number {
     return this.graph.graphData().links.length
   }
@@ -366,6 +384,8 @@ export class ForceGraph {
         const targetId = typeof link.target === 'object' ? link.target.id : link.target
         return sourceId.toString() !== nodeId && targetId.toString() !== nodeId
       })
+      // Update cooldown time after removing node
+      this.graph.cooldownTime(this.calculateCooldownTime())
       this.refreshGraph()
       return true
     }
@@ -373,54 +393,36 @@ export class ForceGraph {
   }
 
   public async addData(newData: GraphData): Promise<void> {
-    this.isCalculating = true
-
     // Add new nodes if they don't exist
     newData.nodes.forEach((node) => {
       if (!this.nodesMap.has(node.id.toString())) {
         this.nodesMap.set(node.id.toString(), node)
-      }
-    })
-
-    // Create a unique key for each link
-    const createLinkKey = (
-      source: string | number | NodeData,
-      target: string | number | NodeData,
-    ) => {
-      const sourceId = typeof source === 'object' ? source.id : source
-      const targetId = typeof target === 'object' ? target.id : target
-      return `${sourceId}-${targetId}`
-    }
-
-    const linkMap = new Map<string, LinkData>()
-
-    // Add existing links to the map
-    this.data.links.forEach((link) => {
-      const key = createLinkKey(link.source, link.target)
-      linkMap.set(key, link)
+      } // else console.log('node already exists', node)
     })
 
     // Add new links if they don't exist
     newData.links.forEach((link) => {
-      const key = createLinkKey(link.source, link.target)
-      if (!linkMap.has(key)) {
-        linkMap.set(key, link)
-      }
+      const key = this.createLinkKey(link.source, link.target)
+      if (!this.linkMap.has(key)) {
+        this.linkMap.set(key, link)
+      } else console.log('link already exists', link)
     })
 
     // Update the data
     this.data = {
       nodes: Array.from(this.nodesMap.values()),
-      links: Array.from(linkMap.values()),
+      links: Array.from(this.linkMap.values()),
     }
 
     // Update the graph
-    this.graphData(this.data)
+    console.log('this.data', this.data, newData)
 
-    // Fallback to setTimeout to avoid blocking UI
-    setTimeout(() => {
-      this.isCalculating = false
-    }, 500)
+    // Update cooldown time based on new node count
+    this.graph.cooldownTime(this.calculateCooldownTime())
+
+    // this.graphData(this.data)
+
+    this.graph.graphData(this.data)
   }
 
   public setLabelThreshold(threshold: number) {
@@ -461,21 +463,8 @@ export class ForceGraph {
     this.data = { nodes: [], links: [] }
     this.nodesMap.clear() // Clear the nodes map as well
 
-    // Reset data manager if available
-    if (this.dataManager) {
-      this.dataManager.reset()
-    }
-
-    // Reset calculation state
-    this.isCalculating = false
-
     this.graph = new ForceGraphRenderer(this.container)
     this.initGraph()
-  }
-
-  public isLoading(): boolean {
-    const isFetching = this.dataManager ? this.dataManager.isFetching() : false
-    return this.isCalculating || isFetching
   }
 
   public getData(): GraphData {
@@ -488,40 +477,44 @@ export class ForceGraph {
     return this.data.links
   }
 
+  private createLinkKey(source: string | number | NodeData, target: string | number | NodeData) {
+    const sourceId = typeof source === 'object' ? source.id : source
+    const targetId = typeof target === 'object' ? target.id : target
+    return `${sourceId}-${targetId}`
+  }
   /**
    * Set graph data (chainable method)
    * @param data - Graph data to set
    */
   public graphData(data: GraphData): ForceGraph {
-    this.data = data
     this.nodesMap.clear()
+    this.linkMap.clear()
+
+    // Add new nodes if they don't exist
     data.nodes.forEach((node) => {
-      this.nodesMap.set(node.id.toString(), node)
+      if (!this.nodesMap.has(node.id.toString())) {
+        this.nodesMap.set(node.id.toString(), node)
+      }
     })
+    // Add new links if they don't exist
+    data.links.forEach((link) => {
+      const key = this.createLinkKey(link.source, link.target)
+      if (!this.linkMap.has(key)) {
+        this.linkMap.set(key, link)
+      }
+    })
+
+    // Update the data
+    this.data = {
+      nodes: Array.from(this.nodesMap.values()),
+      links: Array.from(this.linkMap.values()),
+    }
+
+    // Update cooldown time based on new node count
+    this.graph.cooldownTime(this.calculateCooldownTime())
+
     this.graph.graphData(this.data)
     return this
-  }
-
-  public getLoadingState(): { isFetching: boolean; isCalculating: boolean } {
-    const isFetching = this.dataManager ? this.dataManager.isFetching() : false
-    return {
-      isFetching,
-      isCalculating: this.isCalculating,
-    }
-  }
-
-  /**
-   * Set the DataManager for handling data fetching and transformation
-   */
-  public setDataManager(dataManager: DataManager): void {
-    this.dataManager = dataManager
-  }
-
-  /**
-   * Get the current DataManager
-   */
-  public getDataManager(): DataManager | undefined {
-    return this.dataManager
   }
 
   public destroy() {

@@ -21,7 +21,11 @@
         </div>
 
         <div class="control-group">
-          <Button id="load-more-btn-v2" :disabled="!loadMoreBtn.status" @click="loadMoreData">
+          <Button
+            id="load-more-btn-v2"
+            :disabled="!loadMoreBtn.status || isFetching"
+            @click="loadMoreData"
+          >
             {{ loadMoreBtn.text }}
           </Button>
         </div>
@@ -96,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, inject } from 'vue'
+import { ref, inject, watch } from 'vue'
 import Collapsible from './ui/collapsible/Collapsible.vue'
 import CollapsibleTrigger from './ui/collapsible/CollapsibleTrigger.vue'
 import Button from './ui/button/Button.vue'
@@ -113,9 +117,13 @@ import Input from './ui/input/Input.vue'
 import InputGroup from './ui/input/InputGroup.vue'
 import { ListboxContent, ListboxRoot, ListboxVirtualizer } from 'reka-ui'
 import { useDebounceFn, useMemoize } from '@vueuse/core'
+import { useFetchGraph } from '@/composeables/useFetchGraph'
+import type { GraphData } from 'interfaces/types'
 
 // Inject the graph context from parent component
 const graphContext = inject<GraphContext>('graphContext')
+const { data, page, isFetching, isLoading, promise, endpoint, accessToken, reset, loadNextPage } =
+  useFetchGraph()
 
 if (!graphContext) {
   throw new Error('GraphOptions must be used within a component that provides graphContext')
@@ -123,6 +131,7 @@ if (!graphContext) {
 
 const {
   graph,
+  pagination,
   dataManager,
   labelThreshold,
   loadMoreBtn,
@@ -158,14 +167,28 @@ function refreshGraph() {
 
 function resetGraph() {
   graph.value?.reset()
+  reset()
 }
 
 async function loadMoreData() {
   fetchLoading.value = true
   loadMoreBtn.value.status = false
+
   try {
-    const newData = await dataManager.value?.fetchNextPage()
+    let newData: GraphData | null = null
+    if (endpoint && accessToken) {
+      // Use the helper function that handles page increment and waiting
+      const result = await loadNextPage()
+      newData = result?.data ?? null
+      pagination.value = result?.pagination ?? null
+      console.log('result', result?.data)
+    } else if (dataManager.value) {
+      newData = await dataManager.value.fetchNextPage()
+    }
+    console.log(newData)
+
     if (newData && graph.value) {
+      console.log(newData)
       graph.value.addData(newData)
       nodeSelect.value.options.push(
         ...graph.value.getNodesData().map((node) => ({
@@ -174,8 +197,6 @@ async function loadMoreData() {
         })),
       )
     }
-    console.log('nodes', graph.value?.getDataSize().nodes)
-    console.log('links', graph.value?.getDataSize().links)
   } catch (error) {
     console.error('Error fetching data:', error)
   }

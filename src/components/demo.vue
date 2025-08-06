@@ -6,7 +6,7 @@
       <div ref="graphContainer" class="w-full h-full" />
 
       <div
-        v-if="fetchLoading"
+        v-if="fetchLoading && isLoading"
         class="absolute inset-0 flex items-center justify-center bg-background/70"
       >
         <div class="flex gap-2 animate-pulse items-center">
@@ -14,13 +14,10 @@
           Loading fetch data...
         </div>
       </div>
-      <div
-        v-else-if="renderLoading"
-        class="absolute inset-0 flex items-center justify-center bg-background/70"
-      >
+      <div v-else-if="isFetching" class="absolute top-3 right-3 flex items-center justify-center">
         <div class="flex gap-2 animate-pulse items-center">
-          <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
-          Rendering graph layout...
+          <div class="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white"></div>
+          Loading new data...
         </div>
       </div>
 
@@ -32,7 +29,7 @@
         <p>links: {{ graph?.getDataSize().links }}</p>
       </div>
     </div>
-    {{ graphOptions }}
+    <pre>{{ graphOptions }}</pre>
   </div>
 </template>
 
@@ -41,13 +38,17 @@ import { ForceGraph } from '@/lib/ForceGraph'
 import { DefaultDataFetcher } from '../../interfaces/dataFetcher'
 import { DataManager } from '../../interfaces/dataManager'
 import { DefaultDataTransformer } from '../../interfaces/dataTransformer'
-import { computed, onMounted, provide, ref, watch, type Ref } from 'vue'
+import { computed, onMounted, provide, ref, watch, watchEffect, type Ref } from 'vue'
 import { useDark, useElementSize } from '@vueuse/core'
-import type { GraphOptions as GraphOptionsType, NodeData } from '../../interfaces/types'
+import type { GraphData, GraphOptions as GraphOptionsType, NodeData } from '../../interfaces/types'
 import GraphOptions from './GraphOptions.vue'
 import type { GraphContext } from '../types/graph-context'
+import { useFetchGraph } from '@/composeables/useFetchGraph'
+import type { Pagination } from 'interfaces/graphResponse'
 
 const isDark = useDark()
+const { data, page, promise, endpoint, accessToken, isLoading, isFetching, error, refetch } =
+  useFetchGraph()
 
 // Graph context state
 const fetchLoading = ref(false)
@@ -60,6 +61,7 @@ const nodeSelect = ref({
   }[],
   selected: null as unknown,
 })
+const pagination = ref<Pagination | null>(null)
 
 // graph options
 const loadMoreBtn = ref({
@@ -104,23 +106,28 @@ const dataTransformer = new DefaultDataTransformer()
 // Import DataManager from the same path as in GraphContext to ensure type compatibility
 const dataManager = ref(new DataManager(dataFetcher, dataTransformer)) as Ref<DataManager>
 
-// Create and provide the graph context
-const updateLoadingIndicator = () => {
-  if (!dataManager.value) return
-
-  const paginationInfo = {
-    currentPage: dataManager.value.getCurrentPage(),
-    totalPages: dataManager.value.getTotalPages(),
-    isLastPage: dataManager.value.getIsLastPage(),
+watch([() => loadMoreBtn.value.status, pagination], () => {
+  const pageInfo = {
+    currentPage: dataManager.value?.getCurrentPage(),
+    totalPages: dataManager.value?.getTotalPages() ?? 1,
+    isLastPage: dataManager.value?.getIsLastPage(),
+  }
+  if (data.value?.pagination) {
+    pageInfo.currentPage = pagination.value?.pageCurrent ?? 1
+    pageInfo.totalPages = pagination.value?.pageLast ?? 1
+    pageInfo.isLastPage = pagination.value?.pageLast === pagination.value?.pageCurrent
   }
 
-  if (paginationInfo?.isLastPage) {
+  if (pageInfo?.isLastPage) {
     loadMoreBtn.value.text = 'All Data Loaded'
   } else {
-    loadMoreBtn.value.text = `Load More Data (${paginationInfo?.currentPage || 0}/${paginationInfo?.totalPages || 5})`
+    loadMoreBtn.value.text = `Load More Data (${pageInfo?.currentPage || 0}/${pageInfo?.totalPages || 5})`
   }
-  loadMoreBtn.value.status = true
+})
 
+// Create and provide the graph context
+const updateLoadingIndicator = () => {
+  loadMoreBtn.value.status = true
   // Update node selectbox if search is active
   if (nodeSearch.value) {
     populateNodeSelect(nodeSearch.value)
@@ -132,6 +139,7 @@ const graphOptions = computed<GraphOptionsType>(() => ({
   height: height.value,
   labelThreshold: labelThreshold.value[0],
   keepDragPosition: true,
+  linkWidth: 0.4,
   nodeSize,
   nodeLabel: (node: NodeData) => {
     const label = node.label || String(node.id)
@@ -157,7 +165,7 @@ const graphOptions = computed<GraphOptionsType>(() => ({
   },
   collide: (node: NodeData) => {
     const isTopic = node.type === 'topic' || !node.type
-    if (isTopic) return nodeSize(node) * 7
+    if (isTopic) return nodeSize(node) * 10
     else if (node.type === 'post') return nodeSize(node) * 5
 
     // return nodeSize(node)
@@ -170,6 +178,7 @@ const graphOptions = computed<GraphOptionsType>(() => ({
 // Provide the graph context to child components
 const graphContext: GraphContext = {
   graph,
+  pagination,
   dataManager,
   labelThreshold,
   loadMoreBtn,
@@ -186,24 +195,33 @@ onMounted(async () => {
   graph.value = new ForceGraph(graphContainer.value, initialData, graphOptions.value)
 
   // Set the data manager on the graph
-  if (graph.value && dataManager.value) {
-    graph.value.setDataManager(dataManager.value)
-  }
+  // if (graph.value && dataManager.value) {
+  //   graph.value.setDataManager(dataManager.value)
+  // }
 
   // Initial data load
   fetchLoading.value = true
+
   try {
-    if (dataManager.value) {
-      const newData = await dataManager.value.fetchNextPage()
-      if (newData && graph.value) {
-        graph.value.addData(newData)
-        nodeSelect.value.options.push(
-          ...graph.value.getNodesData().map((node) => ({
-            label: node.label || String(node.id),
-            value: node.id.toString(),
-          })),
-        )
-      }
+    let newData: GraphData | null = null
+    if (endpoint && accessToken) {
+      console.log((await promise.value).data)
+      newData = data.value?.data ?? null
+      pagination.value = data.value?.pagination ?? null
+    } else if (dataManager.value) {
+      newData = await dataManager.value.fetchNextPage()
+    }
+
+    console.log(newData)
+
+    if (newData && graph.value) {
+      graph.value.addData(newData)
+      nodeSelect.value.options.push(
+        ...graph.value.getNodesData().map((node) => ({
+          label: node.label || String(node.id),
+          value: node.id.toString(),
+        })),
+      )
     }
   } catch (error) {
     console.error('Error fetching initial data:', error)
@@ -211,7 +229,7 @@ onMounted(async () => {
   fetchLoading.value = false
 
   // Set up interval to check loading status
-  setInterval(updateLoadingIndicator, 500)
+  updateLoadingIndicator()
 })
 
 function nodeSize(node: NodeData) {

@@ -39,6 +39,10 @@ const data = {
           title: 'About',
           url: '/about',
         },
+        {
+          title: 'Vue Query Example',
+          url: '/vue-query-example',
+        },
       ],
     },
   ],
