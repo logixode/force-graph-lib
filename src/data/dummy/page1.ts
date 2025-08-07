@@ -1,5 +1,4 @@
-import type { Pagination } from '../../../interfaces/graphResponse'
-import type { FullResponse } from '../../api'
+import type { FullResponse, Pagination } from '../../../interfaces/graphResponse'
 
 const res: FullResponse<Pagination> = {
   data: {

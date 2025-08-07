@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
 import AppSidebar from './components/AppSidebar.vue'
 import ApiSettings from './components/ApiSettings.vue'
 import Breadcrumb from './components/ui/breadcrumb/Breadcrumb.vue'

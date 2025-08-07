@@ -3,7 +3,7 @@ import axios from 'axios'
 import { DefaultDataTransformer } from '../../interfaces/dataTransformer'
 import type { FullResponse, Pagination } from 'interfaces/graphResponse'
 import type { GraphData } from 'interfaces/types'
-import { ref, computed, toValue, watchEffect, watch } from 'vue'
+import { ref, computed, toValue, watch } from 'vue'
 
 // Storage keys for API settings
 export const API_KEYS = {
