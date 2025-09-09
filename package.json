@@ -1,5 +1,5 @@
 {
-  "name": "force-graph-lib",
+  "name": "@logixode/force-graph-lib",
   "private": false,
   "version": "0.1.0",
   "type": "module",
@@ -19,6 +19,7 @@
   "scripts": {
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
+    "build:lib": "VITE_BUILD_TARGET=lib vite build && npx tsc --project tsconfig.lib.json --noEmit",
     "preview": "vite preview",
     "test:unit": "vitest",
     "test:e2e": "playwright test",
@@ -35,17 +36,19 @@
     "axios": "^1.11.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "d3": "^7.9.0",
     "d3-force-clustering": "^1.0.0",
-    "force-graph": "^1.50.1",
     "lucide-vue-next": "^0.525.0",
     "reka-ui": "^2.4.1",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.11",
     "tw-animate-css": "^1.3.5",
-    "vue": "^3.5.17",
     "vue-router": "^4.5.1",
     "vue-sonner": "^2.0.2"
+  },
+  "peerDependencies": {
+    "d3": "^7.9.0",
+    "force-graph": "^1.50.1",
+    "vue": "^3.5.17"
   },
   "devDependencies": {
     "@playwright/test": "^1.53.1",
@@ -70,6 +73,7 @@
     "typescript": "~5.8.0",
     "unplugin-vue-router": "^0.14.0",
     "vite": "^7.0.0",
+    "vite-plugin-dts": "^4.5.4",
     "vite-plugin-vue-devtools": "^7.7.7",
     "vitest": "^3.2.4",
     "vue-tsc": "^2.2.10"
