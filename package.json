@@ -4,7 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "files": [
-    "dist"
+    "dist/force-graph-lib.es.js",
+    "dist/force-graph-lib.umd.js",
+    "dist/index.d.ts"
   ],
   "main": "./dist/force-graph-lib.umd.js",
   "module": "./dist/force-graph-lib.es.js",
