@@ -38,7 +38,7 @@ import { ForceGraph } from '@/lib/ForceGraph'
 import { DefaultDataFetcher } from '../../interfaces/dataFetcher'
 import { DataManager } from '../../interfaces/dataManager'
 import { DefaultDataTransformer } from '../../interfaces/dataTransformer'
-import { computed, onMounted, provide, ref, watch, watchEffect, type Ref } from 'vue'
+import { computed, onMounted, provide, ref, watch, useTemplateRef, type Ref } from 'vue'
 import { useDark, useElementSize } from '@vueuse/core'
 import type { GraphData, GraphOptions as GraphOptionsType, NodeData } from '../../interfaces/types'
 import GraphOptions from './GraphOptions.vue'
@@ -72,7 +72,7 @@ const labelThreshold = ref([1.2])
 
 // graph related data
 const graph = ref<ForceGraph>()
-const graphContainer = ref<HTMLDivElement>()
+const graphContainer = useTemplateRef('graphContainer')
 const { width, height } = useElementSize(graphContainer)
 const labelColor = computed(
   () =>
