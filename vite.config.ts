@@ -12,7 +12,8 @@ const vuePlugin = vue as unknown as () => Plugin
 const isLibBuild = process.env.VITE_BUILD_TARGET === 'lib'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? '/force-graph-lib/' : '/',
   plugins: [
     // Conditionally add Vue plugins
     ...(!isLibBuild
@@ -65,4 +66,4 @@ export default defineConfig({
         },
       }
     : undefined, // Use default app build when not building lib
-})
+}))
