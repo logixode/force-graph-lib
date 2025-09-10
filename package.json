@@ -38,7 +38,7 @@
     "build": "bunx --bun vite build && npx tsc --project tsconfig.lib.json --noEmit",
     "preview": "bunx --bun vite preview",
     "docs:dev": "bunx --bun vitepress dev",
-    "docs:build": "bunx --bun vitepress build",
+    "docs:build": "vitepress build",
     "docs:preview": "bunx --bun vitepress preview"
   },
   "dependencies": {
@@ -59,7 +59,7 @@
   "peerDependencies": {
     "d3": "^7.9.0",
     "d3-force-clustering": "^1.0.0",
-    "force-graph": "^1.51.1"
+    "force-graph": "^1.50.1"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
