@@ -4,17 +4,17 @@
   "typescript": true,
   "tailwind": {
     "config": "",
-    "css": "src/assets/main.css",
+    "css": ".vitepress/theme/main.css",
     "baseColor": "neutral",
     "cssVariables": true,
     "prefix": ""
   },
   "aliases": {
-    "components": "@/components",
-    "composables": "@/composables",
-    "utils": "@/lib/utils",
-    "ui": "@/components/ui",
-    "lib": "@/lib"
+    "components": "@docs/components",
+    "composables": "@docs/composables",
+    "utils": "@docs/lib/utils",
+    "ui": "@docs/components/ui",
+    "lib": "@docs/lib"
   },
   "iconLibrary": "lucide"
 }

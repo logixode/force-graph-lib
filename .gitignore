@@ -11,7 +11,6 @@ node_modules
 .DS_Store
 dist
 dist-ssr
-coverage
 *.local
 
 /cypress/videos/
@@ -25,7 +24,4 @@ coverage
 *.sln
 *.sw?
 
-*.tsbuildinfo
-
-test-results/
-playwright-report/
+.vitepress/cache
