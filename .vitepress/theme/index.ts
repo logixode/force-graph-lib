@@ -13,7 +13,6 @@ import './main.css'
 import Layout from './Layout.vue'
 
 const Demo = defineClientComponent(() => import('@docs/components/Demo.vue'))
-const About = defineClientComponent(() => import('@docs/components/About.vue'))
 const Curves = defineClientComponent(() => import('@docs/components/Curves.vue'))
 
 export default {
@@ -36,7 +35,6 @@ export default {
 
     // Register global components
     app.component('Demo', Demo)
-    app.component('About', About)
     app.component('Curves', Curves)
   },
 } satisfies Theme
