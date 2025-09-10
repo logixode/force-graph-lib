@@ -153,11 +153,3 @@ If everything is set up correctly, you should see:
 **Import errors**: Check file paths and ensure all dependencies are installed \
 **TypeScript errors**: Verify your tsconfig.json includes the necessary files \
 **Blank graph**: Check browser console for errors and verify data format
-
-## Next Steps
-
-Now that you have a basic graph running:
-
-1. **Explore styling options** - See [Configuration Guide](./configuration.md)
-2. **Learn about data structures** - Check [Data Structures](./data-structures.md)
-3. **Try advanced features** - Visit [Basic Usage](./basic-usage.md) for more examples

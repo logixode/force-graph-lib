@@ -25,21 +25,6 @@ A powerful, flexible TypeScript library for creating interactive force-directed 
 - `d3` - Data visualization library
 - `d3-force-clustering` - Clustering algorithms
 
-## 📁 Documentation Structure
-
-| File                                    | Description                           |
-| --------------------------------------- | ------------------------------------- |
-| [Getting Started](./getting-started.md) | Installation and basic setup          |
-| [Basic Usage](./basic-usage.md)         | Simple examples and quick start guide |
-| [Configuration](./configuration.md)     | Complete options reference            |
-| [Data Structures](./data-structures.md) | Node and link interfaces              |
-| [Grouping Guide](./grouping.md)         | Advanced grouping functionality       |
-| [API Methods](./api-methods.md)         | Complete methods reference            |
-| [Events](./events.md)                   | Event handling and callbacks          |
-| [Examples](./examples.md)               | Practical implementation examples     |
-| [Performance](./performance.md)         | Optimization tips and best practices  |
-| [Troubleshooting](./troubleshooting.md) | Common issues and solutions           |
-
 ## 🎯 Quick Example
 
 ```typescript
