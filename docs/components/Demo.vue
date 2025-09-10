@@ -42,7 +42,7 @@ import { computed, onMounted, provide, ref, watch, useTemplateRef, type Ref } fr
 import { useDark, useElementSize } from '@vueuse/core'
 import type { GraphData, GraphOptions as GraphOptionsType, NodeData } from '../../interfaces/types'
 import GraphOptions from './GraphOptions.vue'
-import type { GraphContext } from '../../src/types/graph-context'
+import type { GraphContext } from '../../interfaces/graph-context'
 import { useFetchGraph } from '@docs/composables/useFetchGraph'
 import type { Pagination } from 'interfaces/graphResponse'
 
@@ -79,7 +79,7 @@ const labelColor = computed(
     ({
       dark: '#eee',
       light: '#222',
-    })[isDark.value ? 'dark' : 'light'],
+    }[isDark.value ? 'dark' : 'light'])
 )
 
 // Define platform colors
@@ -99,7 +99,9 @@ const initialData = {
 }
 
 // Create data management components
-const dataFetcher = new DefaultDataFetcher()
+const dataFetcher = new DefaultDataFetcher(
+  (process.env.NODE_ENV === 'production' ? '/force-graph-lib' : '') + '/fetch'
+)
 const dataTransformer = new DefaultDataTransformer()
 
 // Create a DataManager instance
@@ -121,7 +123,9 @@ watch([() => loadMoreBtn.value.status, pagination], () => {
   if (pageInfo?.isLastPage) {
     loadMoreBtn.value.text = 'All Data Loaded'
   } else {
-    loadMoreBtn.value.text = `Load More Data (${pageInfo?.currentPage || 0}/${pageInfo?.totalPages || 5})`
+    loadMoreBtn.value.text = `Load More Data (${pageInfo?.currentPage || 0}/${
+      pageInfo?.totalPages || 5
+    })`
   }
 })
 
@@ -233,7 +237,7 @@ onMounted(async () => {
         ...graph.value.getNodesData().map((node) => ({
           label: node.label || String(node.id),
           value: node.id.toString(),
-        })),
+        }))
       )
     }
   } catch (error) {
