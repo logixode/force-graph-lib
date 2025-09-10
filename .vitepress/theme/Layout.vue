@@ -13,21 +13,20 @@ const { Layout } = DefaultTheme
 <template>
   <Layout>
     <template #nav-bar-content-after>
-      <ClientOnly>
+      <div class="flex items-center gap-px order-3">
         <ApiSetting />
-      </ClientOnly>
 
-      <ThemeToggle />
-      <a
-        href="https://github.com/logixode/force-graph-lib"
-        target="_blank"
-        :class="buttonVariants({ variant: 'ghost' })"
-      >
-        <Github />
-      </a>
+        <ThemeToggle />
+        <a
+          href="https://github.com/logixode/force-graph-lib"
+          target="_blank"
+          :class="buttonVariants({ variant: 'ghost' })"
+        >
+          <Github />
+        </a>
+      </div>
     </template>
     <template #layout-bottom>
-      <p>testtt</p>
       <Toaster />
     </template>
   </Layout>

@@ -6,6 +6,8 @@ export default defineConfig({
   base: process.env.NODE_ENV === 'production' ? '/force-graph-lib/' : '/',
   srcDir: 'docs',
 
+  lastUpdated: true,
+
   title: 'Force Graph Lib',
   description: 'Force-directed graph visualization library.',
 
@@ -32,28 +34,30 @@ export default defineConfig({
 
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Examples', link: '/markdown-examples' },
+      { text: 'Docs', link: '/getting-started' },
     ],
 
     sidebar: [
       {
-        text: 'Introduction',
+        text: 'Overview',
         items: [
-          { text: 'Getting Started', link: '/markdown-examples' },
-          { text: 'Runtime API Examples', link: '/api-examples' },
-          { text: 'API Index', link: '/api-examples' },
+          { text: 'Introduction', link: '/introduction' },
+          { text: 'Getting Started', link: '/getting-started' },
+          { text: 'Basic Usage', link: '/basic-usage' },
+          { text: 'API References', link: '/api-references' },
         ],
       },
       {
         text: 'Visualization',
         collapsed: false,
         items: [
-          { text: 'Markdown Examples', link: '/markdown-examples' },
+          { text: 'Demo', link: '/demo' },
           { text: 'Curves Examples', link: '/curves' },
-          { text: 'Runtime API Examples', link: '/api-examples' },
         ],
       },
-      { text: 'About', link: '/about' },
     ],
+    editLink: {
+      pattern: 'https://github.com/logixode/force-graph-lib/edit/main/docs/:path',
+    },
   },
 })

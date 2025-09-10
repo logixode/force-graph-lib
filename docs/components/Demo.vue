@@ -24,7 +24,7 @@
       <div class="absolute bottom-2 right-3 text-xs">
         {{ graphContainer?.clientWidth }}x{{ graphContainer?.clientHeight }}
       </div>
-      <div class="absolute bottom-2 left-3 text-xs">
+      <div class="absolute bottom-2 left-3 text-xs [&>p]:leading-4 [&>p]:m-0">
         <p>nodes: {{ graph?.getDataSize().nodes }}</p>
         <p>links: {{ graph?.getDataSize().links }}</p>
       </div>
