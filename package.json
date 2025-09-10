@@ -19,27 +19,27 @@
   ],
   "type": "module",
   "files": [
-    "dist/force-graph-lib.es.js",
+    "dist/force-graph-lib.js",
     "dist/force-graph-lib.umd.js",
     "dist/index.d.ts"
   ],
   "main": "./dist/force-graph-lib.umd.js",
-  "module": "./dist/force-graph-lib.es.js",
+  "module": "./dist/force-graph-lib.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/force-graph-lib.es.js",
+      "import": "./dist/force-graph-lib.js",
       "require": "./dist/force-graph-lib.umd.js"
     }
   },
   "scripts": {
-    "dev": "vite",
-    "build": "vite build && npx tsc --project tsconfig.lib.json --noEmit",
-    "preview": "vite preview",
-    "docs:dev": "vitepress dev",
-    "docs:build": "vitepress build",
-    "docs:preview": "vitepress preview"
+    "dev": "bunx --bun vite",
+    "build": "bunx --bun vite build && npx tsc --project tsconfig.lib.json --noEmit",
+    "preview": "bunx --bun vite preview",
+    "docs:dev": "bunx --bun vitepress dev",
+    "docs:build": "bunx --bun vitepress build",
+    "docs:preview": "bunx --bun vitepress preview"
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.9.0",
@@ -49,9 +49,6 @@
     "axios": "^1.11.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "d3": "^7.9.0",
-    "d3-force-clustering": "^1.0.0",
-    "force-graph": "^1.51.0",
     "lucide-vue-next": "^0.543.0",
     "reka-ui": "^2.5.0",
     "tailwind-merge": "^3.3.1",
@@ -61,7 +58,8 @@
   },
   "peerDependencies": {
     "d3": "^7.9.0",
-    "force-graph": "^1.50.1"
+    "d3-force-clustering": "^1.0.0",
+    "force-graph": "^1.51.1"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
