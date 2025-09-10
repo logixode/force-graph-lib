@@ -1,19 +1,21 @@
 <script setup lang="ts">
-import DefaultTheme from "vitepress/theme";
-import { Toaster } from "@docs/components/ui/sonner/index.ts";
-import ThemeToggle from "@docs/components/ThemeToggle.vue";
-import ApiSetting from "@docs/components/ApiSetting.vue";
-import "vue-sonner/style.css"; // vue-sonner v2 requires this import
-import { buttonVariants } from "@docs/components/ui/button";
-import { Github } from "lucide-vue-next";
+import DefaultTheme from 'vitepress/theme'
+import { Toaster } from '@docs/components/ui/sonner/index.ts'
+import ThemeToggle from '@docs/components/ThemeToggle.vue'
+import ApiSetting from '@docs/components/ApiSetting.vue'
+import 'vue-sonner/style.css' // vue-sonner v2 requires this import
+import { buttonVariants } from '@docs/components/ui/button'
+import { Github } from 'lucide-vue-next'
 
-const { Layout } = DefaultTheme;
+const { Layout } = DefaultTheme
 </script>
 
 <template>
   <Layout>
     <template #nav-bar-content-after>
-      <ApiSetting />
+      <ClientOnly>
+        <ApiSetting />
+      </ClientOnly>
 
       <ThemeToggle />
       <a

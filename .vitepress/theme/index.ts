@@ -1,16 +1,20 @@
 // https://vitepress.dev/guide/custom-theme
-import type { Theme } from 'vitepress'
+import { defineClientComponent, type Theme } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
 
-import Demo from '@docs/components/Demo.vue'
-import About from '@docs/components/About.vue'
-import Curves from '@docs/components/Curves.vue'
+// import Demo from
+// import About from '@docs/components/About.vue'
+// import Curves from '@docs/components/Curves.vue'
 
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { autoAnimatePlugin } from '@formkit/auto-animate/vue'
 import './style.css'
 import './main.css'
 import Layout from './Layout.vue'
+
+const Demo = defineClientComponent(() => import('@docs/components/Demo.vue'))
+const About = defineClientComponent(() => import('@docs/components/About.vue'))
+const Curves = defineClientComponent(() => import('@docs/components/Curves.vue'))
 
 export default {
   extends: DefaultTheme,
