@@ -1,24 +1,25 @@
-import { defineConfig } from "vitepress";
-import path from "node:path";
+import { defineConfig } from 'vitepress'
+import path from 'node:path'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  srcDir: "docs",
+  base: process.env.NODE_ENV === 'production' ? '/force-graph-lib/' : '/',
+  srcDir: 'docs',
 
-  title: "Force Graph Lib",
-  description: "Force-directed graph visualization library.",
+  title: 'Force Graph Lib',
+  description: 'Force-directed graph visualization library.',
 
   vite: {
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "../src"),
-        "@docs": path.resolve(__dirname, "../docs"),
-        "@vitepress": path.resolve(__dirname, "../.vitepress"),
+        '@': path.resolve(__dirname, '../src'),
+        '@docs': path.resolve(__dirname, '../docs'),
+        '@vitepress': path.resolve(__dirname, '../.vitepress'),
       },
     },
     server: {
       fs: {
-        allow: ["../"],
+        allow: ['../'],
       },
     },
   },
@@ -26,33 +27,33 @@ export default defineConfig({
   appearance: false,
   themeConfig: {
     search: {
-      provider: "local",
+      provider: 'local',
     },
 
     nav: [
-      { text: "Home", link: "/" },
-      { text: "Examples", link: "/markdown-examples" },
+      { text: 'Home', link: '/' },
+      { text: 'Examples', link: '/markdown-examples' },
     ],
 
     sidebar: [
       {
-        text: "Introduction",
+        text: 'Introduction',
         items: [
-          { text: "Getting Started", link: "/markdown-examples" },
-          { text: "Runtime API Examples", link: "/api-examples" },
-          { text: "API Index", link: "/api-examples" },
+          { text: 'Getting Started', link: '/markdown-examples' },
+          { text: 'Runtime API Examples', link: '/api-examples' },
+          { text: 'API Index', link: '/api-examples' },
         ],
       },
       {
-        text: "Visualization",
+        text: 'Visualization',
         collapsed: false,
         items: [
-          { text: "Markdown Examples", link: "/markdown-examples" },
-          { text: "Curves Examples", link: "/curves" },
-          { text: "Runtime API Examples", link: "/api-examples" },
+          { text: 'Markdown Examples', link: '/markdown-examples' },
+          { text: 'Curves Examples', link: '/curves' },
+          { text: 'Runtime API Examples', link: '/api-examples' },
         ],
       },
-      { text: "About", link: "/about" },
+      { text: 'About', link: '/about' },
     ],
   },
-});
+})
