@@ -20,17 +20,17 @@
   "type": "module",
   "files": [
     "dist/force-graph-lib.js",
-    "dist/force-graph-lib.umd.js",
+    "dist/force-graph-lib.umd.cjs",
     "dist/index.d.ts"
   ],
-  "main": "./dist/force-graph-lib.umd.js",
+  "main": "./dist/force-graph-lib.umd.cjs",
   "module": "./dist/force-graph-lib.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/force-graph-lib.js",
-      "require": "./dist/force-graph-lib.umd.js"
+      "require": "./dist/force-graph-lib.umd.cjs"
     }
   },
   "scripts": {
