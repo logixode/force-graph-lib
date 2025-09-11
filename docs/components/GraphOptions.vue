@@ -148,10 +148,15 @@
             <Checkbox
               id="enable-node-drag"
               class="size-5"
+              :disabled="!enableClick"
               v-model="enableDrag"
               @update:modelValue="toggleDragHandler"
             />
-            <label for="enable-node-drag" class="text-sm font-medium">Enable Drag Node</label>
+            <label
+              for="enable-node-drag"
+              :class="['text-sm font-medium', { 'text-muted-foreground': !enableClick }]"
+              >Enable Drag Node</label
+            >
           </div>
         </div>
 
