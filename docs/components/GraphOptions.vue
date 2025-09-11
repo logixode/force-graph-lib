@@ -1,8 +1,5 @@
 <template>
-  <Collapsible
-    v-model:open="isOpen"
-    class="space-y-2 bg-card shadow-xl rounded-md mb-2"
-  >
+  <Collapsible v-model:open="isOpen" class="space-y-2 bg-card shadow-xl rounded-md mb-2">
     <CollapsibleTrigger as-child>
       <Button variant="ghost" size="sm" class="font-bold w-full p-0 m-0">
         Graph Control
@@ -245,18 +242,19 @@ import SelectTrigger from './ui/select/SelectTrigger.vue'
 import SelectValue from './ui/select/SelectValue.vue'
 import SelectContent from './ui/select/SelectContent.vue'
 import SelectItem from './ui/select/SelectItem.vue'
-import type { GraphContext } from '../../src/types/graph-context'
 import Input from './ui/input/Input.vue'
 import InputGroup from './ui/input/InputGroup.vue'
 import { ListboxContent, ListboxRoot, ListboxVirtualizer } from 'reka-ui'
 import { useDebounceFn, useMemoize } from '@vueuse/core'
 import { useFetchGraph } from '@docs/composables/useFetchGraph'
-import type { GraphData, NodeData } from 'interfaces/types'
+import type { GraphData } from 'interfaces/types'
+import { useGraphContext } from '@docs/context/graphContext'
 
 // Inject the graph context from parent component
-const graphContext = inject<GraphContext>('graphContext')
 const { data, page, isFetching, isLoading, promise, endpoint, accessToken, reset, loadNextPage } =
   useFetchGraph()
+
+const graphContext = useGraphContext()
 
 if (!graphContext) {
   throw new Error('GraphOptions must be used within a component that provides graphContext')
@@ -351,7 +349,7 @@ async function loadMoreData() {
         ...graph.value.getNodesData().map((node) => ({
           label: node.label || String(node.id),
           value: node.id.toString(),
-        })),
+        }))
       )
     }
   } catch (error) {

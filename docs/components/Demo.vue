@@ -35,43 +35,30 @@
 
 <script setup lang="ts">
 import { ForceGraph } from '@/lib/ForceGraph'
-import { DefaultDataFetcher } from '../../interfaces/dataFetcher'
-import { DataManager } from '../../interfaces/dataManager'
-import { DefaultDataTransformer } from '../../interfaces/dataTransformer'
-import { computed, onMounted, provide, ref, watch, useTemplateRef, type Ref } from 'vue'
+import { computed, onMounted, watch, useTemplateRef } from 'vue'
 import { useDark, useElementSize } from '@vueuse/core'
 import type { GraphData, GraphOptions as GraphOptionsType, NodeData } from '../../interfaces/types'
 import GraphOptions from './GraphOptions.vue'
-import type { GraphContext } from '../../interfaces/graph-context'
 import { useFetchGraph } from '@docs/composables/useFetchGraph'
-import type { Pagination } from 'interfaces/graphResponse'
+import { registerGraphContext } from '@docs/context/graphContext'
 
 const isDark = useDark()
 const { data, page, promise, endpoint, accessToken, isLoading, isFetching, error, refetch } =
   useFetchGraph()
 
 // Graph context state
-const fetchLoading = ref(false)
-const renderLoading = ref(false)
-const nodeSearch = ref<string>()
-const nodeSelect = ref({
-  options: [] as {
-    label: string
-    value: string
-  }[],
-  selected: null as unknown,
-})
-const pagination = ref<Pagination | null>(null)
-
-// graph options
-const loadMoreBtn = ref({
-  status: true,
-  text: 'Load More',
-})
-const labelThreshold = ref([1.2])
+const {
+  graph,
+  pagination,
+  dataManager,
+  labelThreshold,
+  loadMoreBtn,
+  nodeSelect,
+  fetchLoading,
+  updateLoadingIndicator,
+} = registerGraphContext()
 
 // graph related data
-const graph = ref<ForceGraph>()
 const graphContainer = useTemplateRef('graphContainer')
 const { width, height } = useElementSize(graphContainer)
 const labelColor = computed(
@@ -98,16 +85,6 @@ const initialData = {
   links: [],
 }
 
-// Create data management components
-const dataFetcher = new DefaultDataFetcher(
-  (process.env.NODE_ENV === 'production' ? '/force-graph-lib' : '') + '/fetch'
-)
-const dataTransformer = new DefaultDataTransformer()
-
-// Create a DataManager instance
-// Import DataManager from the same path as in GraphContext to ensure type compatibility
-const dataManager = ref(new DataManager(dataFetcher, dataTransformer)) as Ref<DataManager>
-
 watch([() => loadMoreBtn.value.status, pagination], () => {
   const pageInfo = {
     currentPage: dataManager.value?.getCurrentPage(),
@@ -128,15 +105,6 @@ watch([() => loadMoreBtn.value.status, pagination], () => {
     })`
   }
 })
-
-// Create and provide the graph context
-const updateLoadingIndicator = () => {
-  loadMoreBtn.value.status = true
-  // Update node selectbox if search is active
-  if (nodeSearch.value) {
-    populateNodeSelect(nodeSearch.value)
-  }
-}
 
 const graphOptions = computed<GraphOptionsType>(() => ({
   width: width.value,
@@ -192,21 +160,6 @@ const graphOptions = computed<GraphOptionsType>(() => ({
   },
 }))
 
-// Provide the graph context to child components
-const graphContext: GraphContext = {
-  graph,
-  pagination,
-  dataManager,
-  labelThreshold,
-  loadMoreBtn,
-  nodeSelect,
-  fetchLoading,
-  renderLoading,
-  updateLoadingIndicator,
-}
-
-provide('graphContext', graphContext)
-
 onMounted(async () => {
   if (!graphContainer.value) return
   graph.value = new ForceGraph(graphContainer.value, initialData, graphOptions.value)
@@ -258,49 +211,6 @@ function nodeSize(node: NodeData) {
   return 1
 }
 
-// Function to populate node selectbox
-const populateNodeSelect = (searchTerm: string = '') => {
-  if (!graph.value) return
-
-  const graphData = graph.value.getData()
-  const nodes = graphData.nodes || []
-
-  // Clear existing options
-  nodeSelect.value.selected = null
-  nodeSelect.value.options = []
-
-  // Filter nodes based on search term
-  const filteredNodes = nodes.filter((node) => {
-    const nodeLabel = node.label || node.id.toString()
-    const nodeId = node.id.toString()
-    const platform = node.platform || ''
-
-    return (
-      nodeLabel.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      nodeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      platform.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  })
-
-  // Sort nodes by label for better UX
-  filteredNodes.sort((a, b) => {
-    const labelA = a.label || a.id.toString()
-    const labelB = b.label || b.id.toString()
-    return labelA.localeCompare(labelB)
-  })
-
-  // Add filtered nodes to select
-  filteredNodes.forEach((node) => {
-    const nodeLabel = node.label || node.id.toString()
-    const platform = node.platform ? ` (${node.platform})` : ''
-
-    nodeSelect.value.options.push({
-      label: `${nodeLabel}${platform}`,
-      value: node.id.toString(),
-    })
-  })
-}
-
 // Watch for changes in width and height from useElementSize
 watch([width, height], (newVal, oldVal) => {
   if (
@@ -312,8 +222,9 @@ watch([width, height], (newVal, oldVal) => {
     return
 
   if (!graphContainer.value || !graph.value) return
+  if (!graph.value) return
   graph.value.setOptions({ width: newVal[0], height: newVal[1] })
-  graph.value?.reinitialize()
+  graph.value.reinitialize()
 
   // // Store current graph data and options
   // const currentData = graph.value.getData() || initialData
