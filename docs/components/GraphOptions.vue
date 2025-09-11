@@ -116,20 +116,43 @@
         />
       </div>
 
-      <!-- Group Controls Section -->
+      <!-- Controls Section -->
       <div class="space-y-4 border-t pt-4">
-        <h3 class="text-lg font-semibold">Group Controls</h3>
+        <h3 class="text-lg font-semibold">Controls</h3>
 
-        <!-- Enable/Disable Groups -->
-        <div class="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="show-groups-checkbox"
-            v-model="showGroups"
-            @change="toggleGroups"
-            class="rounded"
-          />
-          <label for="show-groups-checkbox" class="text-sm font-medium">Show Groups</label>
+        <div class="grid md:grid-cols-2 gap-3">
+          <!-- Enable/Disable Groups -->
+          <div class="flex items-center space-x-2">
+            <Checkbox
+              id="show-groups-checkbox"
+              class="size-5"
+              v-model="showGroups"
+              @update:modelValue="toggleGroups"
+            />
+            <label for="show-groups-checkbox" class="text-sm font-medium">Show Groups</label>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <Checkbox
+              id="enable-node-click"
+              class="size-5"
+              v-model="enableClick"
+              @update:modelValue="toggleClickHandler"
+            />
+            <label for="enable-node-click" class="text-sm font-medium"
+              >Enable Node Click (disabled for performance)</label
+            >
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <Checkbox
+              id="enable-node-drag"
+              class="size-5"
+              v-model="enableDrag"
+              @update:modelValue="toggleDragHandler"
+            />
+            <label for="enable-node-drag" class="text-sm font-medium">Enable Drag Node</label>
+          </div>
         </div>
 
         <!-- Group By Options -->
@@ -249,6 +272,7 @@ import { useDebounceFn, useMemoize } from '@vueuse/core'
 import { useFetchGraph } from '@docs/composables/useFetchGraph'
 import type { GraphData } from 'interfaces/types'
 import { useGraphContext } from '@docs/context/graphContext'
+import { Checkbox } from './ui/checkbox'
 
 // Inject the graph context from parent component
 const { data, page, isFetching, isLoading, promise, endpoint, accessToken, reset, loadNextPage } =
@@ -286,6 +310,8 @@ const autoLoadDelay = 2000 // 2 seconds between auto loads
 
 // Group controls state
 const showGroups = ref(false)
+const enableClick = ref(false)
+const enableDrag = ref(true)
 const groupByOption = ref('topic')
 const groupBorderWidth = ref([2])
 const groupBorderOpacity = ref([0.4])
@@ -425,9 +451,20 @@ function stopAutoLoad() {
 
 // Group control methods
 function toggleGroups() {
-  if (graph.value) {
-    graph.value.showGroups(showGroups.value)
-  }
+  if (!graph.value) return
+  graph.value.showGroups(showGroups.value)
+}
+
+function toggleClickHandler() {
+  if (!graph.value) return
+
+  console.log('click akan', enableClick.value)
+
+  graph.value.renderer().enablePointerInteraction(enableClick.value)
+}
+function toggleDragHandler() {
+  if (!graph.value) return
+  graph.value.renderer().enableNodeDrag(enableDrag.value)
 }
 
 function changeGroupBy() {

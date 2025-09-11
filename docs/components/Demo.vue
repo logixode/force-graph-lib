@@ -120,7 +120,7 @@ const graphOptions = computed<GraphOptionsType>(() => ({
   },
 
   labelThreshold: labelThreshold.value[0],
-  keepDragPosition: true,
+  // keepDragPosition: true,
   linkWidth: 0.4,
   nodeSize,
   nodeLabel: (node: NodeData) => {
@@ -163,6 +163,7 @@ const graphOptions = computed<GraphOptionsType>(() => ({
 onMounted(async () => {
   if (!graphContainer.value) return
   graph.value = new ForceGraph(graphContainer.value, initialData, graphOptions.value)
+  graph.value.renderer().enablePointerInteraction(false)
 
   // Set the data manager on the graph
   // if (graph.value && dataManager.value) {
