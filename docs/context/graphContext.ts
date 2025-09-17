@@ -5,9 +5,12 @@ import { DefaultDataTransformer } from '@/../interfaces/dataTransformer'
 import type { Pagination } from '@/../interfaces/graphResponse'
 import { createContext } from 'reka-ui'
 import { ref, shallowRef, type Ref, type ShallowRef } from 'vue'
+import { useStorage, type RemovableRef } from '@vueuse/core'
+import type { HistorySetting } from '@docs/components/RecentSetting.vue'
 
 export interface GraphContext {
   graph: ShallowRef<ForceGraph | null>
+  apiSetting: RemovableRef<HistorySetting>
   pagination: Ref<Pagination | null>
   dataManager: Ref<DataManager | undefined>
   labelThreshold: Ref<number[]>
@@ -27,8 +30,32 @@ export interface GraphContext {
   updateLoadingIndicator: () => void
 }
 
+// Storage keys for API settings
+export const API_STORAGE_KEYS = {
+  API: 'api_setting',
+  HISTORY: 'api_settings_history',
+}
+
 export function registerGraphContext() {
   const graph = shallowRef<ForceGraph | null>(null)
+  const apiSetting = useStorage<HistorySetting>(API_STORAGE_KEYS.API, {
+    accessToken: '',
+    endpoint: '',
+    params: {
+      size: '100',
+      sentiment_selected: 'linguistik',
+      dateStart: new Date(new Date().setDate(new Date().getDate() - 30))
+        .toISOString()
+        .substring(0, 10),
+      dateStop: new Date().toISOString().substring(0, 10),
+      platforms: ['facebook', 'instagram', 'tiktok', 'twitter', 'youtube'],
+      sentiment: [-1, 0, 1],
+      prokontra: [-1, 0, 1],
+      keywords: [],
+    },
+  })
+  // const params = ref<Record<string, any>>({
+  // })
   const pagination = ref<Pagination | null>(null)
 
   // Create data management components
@@ -111,6 +138,7 @@ export function registerGraphContext() {
 
   createGraphContext({
     graph,
+    apiSetting,
     pagination,
     dataManager,
     labelThreshold,
@@ -123,6 +151,7 @@ export function registerGraphContext() {
 
   return {
     graph,
+    apiSetting,
     pagination,
     dataManager,
     labelThreshold,

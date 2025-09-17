@@ -2,7 +2,7 @@
 import DefaultTheme from 'vitepress/theme'
 import { Toaster } from '@docs/components/ui/sonner/index.ts'
 import ThemeToggle from '@docs/components/ThemeToggle.vue'
-import ApiSetting from '@docs/components/ApiSetting.vue'
+// import ApiSetting from '@docs/components/ApiSetting.vue'
 import 'vue-sonner/style.css' // vue-sonner v2 requires this import
 import { buttonVariants } from '@docs/components/ui/button'
 import { Github } from 'lucide-vue-next'
@@ -14,7 +14,7 @@ const { Layout } = DefaultTheme
   <Layout>
     <template #nav-bar-content-after>
       <div class="flex items-center gap-px order-3">
-        <ApiSetting />
+        <!-- <ApiSetting /> -->
 
         <ThemeToggle />
         <a

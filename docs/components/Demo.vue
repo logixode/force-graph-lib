@@ -19,6 +19,7 @@
           <div class="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white"></div>
           Loading new data...
         </div>
+        |
       </div>
 
       <div class="absolute bottom-2 right-3 text-xs">
@@ -35,20 +36,39 @@
 
 <script setup lang="ts">
 import { ForceGraph } from '@/lib/ForceGraph'
+
 import { computed, onMounted, watch, useTemplateRef } from 'vue'
 import { useDark, useElementSize } from '@vueuse/core'
-import type { GraphData, GraphOptions as GraphOptionsType, NodeData } from '../../interfaces/types'
+import type {
+  ForceOptions,
+  GraphData,
+  GraphOptions as GraphOptionsType,
+  NodeData,
+} from '../../interfaces/types'
 import GraphOptions from './GraphOptions.vue'
 import { useFetchGraph } from '@docs/composables/useFetchGraph'
 import { registerGraphContext } from '@docs/context/graphContext'
+import {
+  forceCenter,
+  forceCollide,
+  forceLink,
+  forceRadial,
+  forceX,
+  forceY,
+  type SimulationNodeDatum,
+} from 'd3'
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
+import d3ForceClustering from 'd3-force-clustering'
+import type { FormatCodeOptions } from 'typescript'
 
 const isDark = useDark()
-const { data, page, promise, endpoint, accessToken, isLoading, isFetching, error, refetch } =
-  useFetchGraph()
 
 // Graph context state
 const {
   graph,
+  apiSetting,
   pagination,
   dataManager,
   labelThreshold,
@@ -57,6 +77,9 @@ const {
   fetchLoading,
   updateLoadingIndicator,
 } = registerGraphContext()
+
+const { data, promise, endpoint, accessToken, isLoading, isFetching, error, refetch } =
+  useFetchGraph(apiSetting)
 
 // graph related data
 const graphContainer = useTemplateRef('graphContainer')
@@ -106,6 +129,35 @@ watch([() => loadMoreBtn.value.status, pagination], () => {
   }
 })
 
+const forceOptions: ForceOptions = {
+  // radial: forceRadial(500, height.value / 2, width.value / 2),
+  // radial: forceRadial(
+  //   (d) => {
+  //     if (d.depth === 1 && d.hasChild) return 80 // anak dengan subtree lebih jauh
+  //     return 40 // default anak dekat
+  //   },
+  //   (d) => d.parent.x,
+  //   (d) => d.parent.y
+  // ),
+  // radial: forceRadial(-500),
+  // x: forceX(width.value / 2),
+  // y: forceY(height.value / 2),
+
+  link: forceLink()
+    .id((d: any & NodeData) => d.id)
+    // .distance(100)
+    .strength((d: any & NodeData) => (d.platform == 'twitter' ? 1 : 0.7)),
+  // center: forceCenter(),
+  cluster: d3ForceClustering().clusterId((node: NodeData) => node.sentiment || node.platform),
+  // cluster: d3ForceClustering().clusterId((node: NodeData) => node.sentiment),
+  // collide: forceCollide<NodeData>().radius((node) => {
+  //   // const isTopic = node.type === 'topic' || !node.type
+  //   // if (isTopic) return nodeSize(node) * 10
+  //   // else if (node.type === 'post') return nodeSize(node) * 5
+  //   return nodeSize(node) * 3
+  // }),
+}
+
 const graphOptions = computed<GraphOptionsType>(() => ({
   width: width.value,
   height: height.value,
@@ -122,7 +174,7 @@ const graphOptions = computed<GraphOptionsType>(() => ({
   labelThreshold: labelThreshold.value[0],
   // keepDragPosition: true,
   linkWidth: 0.4,
-  nodeSize,
+  // nodeSize,
   nodeLabel: (node: NodeData) => {
     const label = node.label || String(node.id)
     return `${label}${node.type ? ` (${node.type})` : ''}`
@@ -145,25 +197,19 @@ const graphOptions = computed<GraphOptionsType>(() => ({
 
     return 0
   },
-  collide: (node: NodeData) => {
-    const isTopic = node.type === 'topic' || !node.type
-    if (isTopic) return nodeSize(node) * 10
-    else if (node.type === 'post') return nodeSize(node) * 5
-
-    // return nodeSize(node)
-    return 1
-  },
-  cluster: (node: NodeData) => node.sentiment || node.platform,
+  nodeGap: -200,
   linkCurvature: 0.1,
   nodeClickHandler(node) {
     alert(node.label)
   },
+  force: forceOptions,
+  // pointerInteraction: true,
 }))
 
 onMounted(async () => {
   if (!graphContainer.value) return
   graph.value = new ForceGraph(graphContainer.value, initialData, graphOptions.value)
-  graph.value.renderer().enablePointerInteraction(false)
+  // graph.value.force(forceOptions)
 
   // Set the data manager on the graph
   // if (graph.value && dataManager.value) {
@@ -182,8 +228,6 @@ onMounted(async () => {
     } else if (dataManager.value) {
       newData = await dataManager.value.fetchNextPage()
     }
-
-    console.log(newData)
 
     if (newData && graph.value) {
       graph.value.addData(newData)
@@ -205,9 +249,8 @@ onMounted(async () => {
 
 function nodeSize(node: NodeData) {
   if (!node.type) return 3
-  else if (node.type === 'post') return 1.8
-  else if (node.type == 'repost') return 1.5
-  else if (node.type === 'mentions') return 1.3
+  else if (node.type === 'post') return 1.5
+  else if (node.type == 'repost') return 1.3
 
   return 1
 }

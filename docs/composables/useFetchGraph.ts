@@ -3,26 +3,21 @@ import axios from 'axios'
 import { DefaultDataTransformer } from '../../interfaces/dataTransformer'
 import type { FullResponse, Pagination } from 'interfaces/graphResponse'
 import type { GraphData } from 'interfaces/types'
-import { ref, computed, toValue, watch } from 'vue'
-
-// Storage keys for API settings
-export const API_KEYS = {
-  ENDPOINT: 'api_endpoint',
-  ACCESS_TOKEN: 'api_access_token',
-}
-// Get stored endpoint and token from localStorage
-const endpoint = localStorage.getItem(API_KEYS.ENDPOINT)
-const accessToken = localStorage.getItem(API_KEYS.ACCESS_TOKEN)
+import { computed, ref, toValue, watch } from 'vue'
+import type { RemovableRef } from '@vueuse/core'
+import type { HistorySetting } from '@docs/components/RecentSetting.vue'
 
 const transformer = new DefaultDataTransformer()
 
-export function useFetchGraph() {
-  const page = ref<number>(1)
+export function useFetchGraph(apiSetting: RemovableRef<HistorySetting>) {
+  const page = ref(1)
+  const queryKey = computed(() => ['graphData', apiSetting.value.params, page.value])
+  const { endpoint, accessToken, params } = toValue(apiSetting)
 
   // Use TanStack Query
   const { data, error, isLoading, isFetching, isError, refetch, isSuccess, promise } = useQuery({
-    queryKey: ['graphData', page],
-    queryFn: () => fetchGraphData(toValue(page)),
+    queryKey,
+    queryFn: () => fetchGraphData(endpoint, accessToken, params, page.value),
     enabled: computed(() => !!endpoint && !!accessToken),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
@@ -77,7 +72,6 @@ export function useFetchGraph() {
 
   return {
     data,
-    page,
     endpoint,
     accessToken,
     // pagination,
@@ -99,7 +93,10 @@ export function useFetchGraph() {
 
 // Query function to fetch data
 async function fetchGraphData(
-  pageNum: number,
+  endpoint: string,
+  accessToken: string,
+  params: Record<string, any> = {},
+  page: number
 ): Promise<{ data: GraphData; pagination: Pagination }> {
   if (!endpoint) {
     throw new Error('API endpoint not configured. Please set it in API Settings.')
@@ -109,37 +106,17 @@ async function fetchGraphData(
     throw new Error('Access token not configured. Please set it in API Settings.')
   }
 
-  const url = new URL(endpoint)
-  url.search = new URLSearchParams({
-    page: pageNum.toString(),
-    size: '100',
-    sentiment_selected: 'linguistik',
-    dateStart: '2025-07-05',
-    dateStop: '2025-08-05',
-    platforms: JSON.stringify(['facebook', 'instagram', 'tiktok', 'twitter', 'youtube']),
-    sentiment: JSON.stringify([-1, 0, 1]),
-    prokontra: JSON.stringify([-1, 0, 1]),
-    keywords: JSON.stringify([
-      'Manchester United',
-      'Bournemouth',
-      '2025',
-      'Arsenal',
-      'Bruno Fernandes',
-      'Diogo Jota',
-      'Tottenham',
-      '2024/25',
-      '2024/25 season',
-      '3 Juli',
-      '4-1',
-      '69th minute',
-      'All Goals',
-      'Amorim',
-      'Andre',
-    ]),
-  }).toString()
-
   try {
-    const response = await axios.get<FullResponse<Pagination>>(url.toString(), {
+    const response = await axios.get<FullResponse<Pagination>>(endpoint, {
+      params: {
+        ...Object.fromEntries(
+          Object.entries(params).map(([key, value]) => [
+            key,
+            typeof value == 'string' ? value : JSON.stringify(value),
+          ])
+        ),
+        page,
+      },
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',

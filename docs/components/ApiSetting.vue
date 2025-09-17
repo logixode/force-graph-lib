@@ -1,26 +1,27 @@
 <template>
   <Sheet v-model:open="isOpen">
     <SheetTrigger as-child>
-      <Button variant="ghost" size="icon" class="h-9 w-9">
+      <Button variant="secondary">
+        API Settings
         <Settings class="h-4 w-4" />
-        <span class="sr-only">API Settings</span>
       </Button>
     </SheetTrigger>
-    <SheetContent side="right" class="w-[400px] sm:w-[540px] p-4">
-      <SheetHeader>
+    <SheetContent side="right" class="max-w-sm sm:max-w-xl p-4 pb-0 gap-2">
+      <SheetHeader class="p-2">
         <SheetTitle>API Settings</SheetTitle>
         <SheetDescription>
           Configure your API endpoint and access token. Settings are saved locally.
         </SheetDescription>
       </SheetHeader>
 
-      <form @submit.prevent="handleSubmit" class="space-y-6 mt-6">
+      <form @submit.prevent="handleSubmit" class="space-y-4 p-2 overflow-y-auto py-4">
         <div class="space-y-2">
           <Label for="endpoint">API Endpoint</Label>
           <Input
             id="endpoint"
             name="endpoint"
             type="url"
+            autocomplete="url"
             placeholder="https://api.example.com"
             required
             v-model="formData.endpoint"
@@ -55,45 +56,46 @@
           </div>
         </div>
 
-        <!-- History Section -->
-        <div v-if="settingsHistory.length > 0" class="space-y-3">
-          <Label class="text-sm font-medium">Recent Settings</Label>
-          <div class="space-y-2 max-h-40 overflow-y-auto">
-            <div
-              v-for="(setting, index) in settingsHistory"
-              :key="index"
-              class="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-              @click="applyHistorySetting(setting)"
-            >
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium truncate">{{ setting.endpoint }}</p>
-                <p class="text-xs text-muted-foreground">
-                  Token: {{ setting.accessToken.substring(0, 30) }}...
-                </p>
-                <p class="text-xs text-muted-foreground">
-                  {{ useTimeAgo(setting.savedAt) }}
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                class="ml-2 h-8 w-8 p-0"
-                @click.stop="removeHistorySetting(index)"
-              >
-                <X class="h-4 w-4" />
-                <span class="sr-only">Remove</span>
-              </Button>
-            </div>
-          </div>
-        </div>
+        <Collapsible v-model:open="expandBodyParams" class="space-y-2 -mx-2">
+          <CollapsibleTrigger as-child>
+            <Button variant="ghost" size="sm" class="w-full justify-between">
+              Body Params
 
-        <SheetFooter class="flex-row gap-2">
+              <ChevronsUpDown class="h-4 w-4" />
+            </Button>
+          </CollapsibleTrigger>
+
+          <CollapsibleContent class="space-y-2 px-2">
+            <JsonEditorVue v-model="formData.params" name="body-params" :main-menu-bar="false" />
+          </CollapsibleContent>
+        </Collapsible>
+
+        <!-- History Section -->
+        <RecentSetting
+          v-if="settingsHistory.length"
+          :HISTORY_KEY="API_STORAGE_KEYS.HISTORY"
+          v-model:form-data="formData"
+          v-model:settings-history="settingsHistory"
+        />
+
+        <SheetFooter class="flex-row flex-wrap gap-2 p-0">
           <Button type="submit" :disabled="isLoading" class="flex-1">
             <span v-if="isLoading">Saving...</span>
             <span v-else>Save Settings</span>
           </Button>
-          <Button type="button" variant="outline" @click="handleReset" :disabled="isLoading">
+          <Button type="button" variant="outline" @click="undo" :disabled="isLoading">
+            Undo
+          </Button>
+          <Button type="button" variant="outline" @click="redo" :disabled="isLoading">
+            Redo
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            @click="handleReset"
+            :disabled="isLoading"
+            class="border-orange-500 dark:border-orange-500 text-orange-500"
+          >
             Reset
           </Button>
         </SheetFooter>
@@ -103,8 +105,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { Settings, Eye, EyeOff, X } from 'lucide-vue-next'
+import { ref, onMounted, toRaw } from 'vue'
+import { Settings, Eye, EyeOff, ChevronsUpDown } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import {
   Sheet,
@@ -118,107 +120,89 @@ import {
 import { Button } from '@docs/components/ui/button'
 import { Input } from '@docs/components/ui/input'
 import { Label } from '@docs/components/ui/label'
-import { useTimeAgo } from '@vueuse/core'
+import JsonEditorVue from 'json-editor-vue'
+// import { useGraphContext } from '@docs/context/graphContext'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible'
+import { useRefHistory, useStorage, type UseRefHistoryRecord } from '@vueuse/core'
+import RecentSetting, { type HistorySetting } from './RecentSetting.vue'
+import { API_STORAGE_KEYS, useGraphContext } from '@docs/context/graphContext'
 
-// Types
-interface HistorySetting {
-  endpoint: string
-  accessToken: string
-  savedAt: number
-}
-
-// Local storage keys
-const STORAGE_KEYS = {
-  ENDPOINT: 'api_endpoint',
-  ACCESS_TOKEN: 'api_access_token',
-  HISTORY: 'api_settings_history',
-}
+// Graph context state
+const { apiSetting } = useGraphContext()
+// console.log(params.value)
 
 // Component state
 const isOpen = ref(false)
+const expandBodyParams = ref(true)
 const isLoading = ref(false)
 const showToken = ref(false)
-const settingsHistory = ref<HistorySetting[]>([])
-const formData = ref({
-  endpoint: '',
-  accessToken: '',
+const formData = ref<typeof apiSetting.value>(apiSetting.value)
+
+const { history, undo, redo } = useRefHistory<HistorySetting | undefined>(apiSetting, {
+  capacity: 5,
 })
+
+const settingsHistory = ref<UseRefHistoryRecord<HistorySetting>[]>([])
 
 // Load saved settings from localStorage
 const loadSettings = () => {
-  const savedEndpoint = localStorage.getItem(STORAGE_KEYS.ENDPOINT)
-  const savedToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
+  const { endpoint, accessToken, params } = apiSetting.value
 
-  if (savedEndpoint) {
-    formData.value.endpoint = savedEndpoint
+  if (endpoint) {
+    formData.value.endpoint = endpoint
   }
-  if (savedToken) {
-    formData.value.accessToken = savedToken
+  if (accessToken) {
+    formData.value.accessToken = accessToken
   }
-}
-
-// Load history from localStorage
-const loadHistory = () => {
-  const savedHistory = localStorage.getItem(STORAGE_KEYS.HISTORY)
-  if (savedHistory) {
-    try {
-      settingsHistory.value = JSON.parse(savedHistory)
-    } catch (error) {
-      console.error('Failed to parse settings history:', error)
-      settingsHistory.value = []
-    }
+  if (Object.values(params).length) {
+    formData.value.params = params
   }
 }
 
 // Save current settings to history (max 5 items)
-const saveToHistory = (endpoint: string, accessToken: string) => {
-  const newSetting: HistorySetting = {
-    endpoint,
-    accessToken,
-    savedAt: Date.now(),
-  }
+const saveToHistory = () => {
+  if (!history.value[0].snapshot) history.value[0].snapshot = toRaw(apiSetting.value)
+  history.value.forEach((historyItem, key) => {
+    history.value[key] = {
+      ...historyItem,
+      snapshot: toRaw(historyItem.snapshot),
+    }
+  })
+  // console.log(toRaw(history.value))
+  // if (!history.value.length) return
 
-  // Remove duplicate if exists (same endpoint and token)
-  const existingIndex = settingsHistory.value.findIndex(
-    (setting) => setting.endpoint === endpoint && setting.accessToken === accessToken,
-  )
-  if (existingIndex !== -1) {
-    settingsHistory.value.splice(existingIndex, 1)
-  }
-
-  // Add to beginning of array
-  settingsHistory.value.unshift(newSetting)
-
-  // Keep only last 5 items
-  if (settingsHistory.value.length > 5) {
-    settingsHistory.value = settingsHistory.value.slice(0, 5)
-  }
+  // const mergedHistories = [...history.value, ...settingsHistory.value]
+  const mergedHistories = [...new Set([...toRaw(history.value), ...toRaw(settingsHistory.value)])]
+  console.log('mergedHistories', mergedHistories)
 
   // Save to localStorage
-  localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(settingsHistory.value))
+  localStorage.setItem(API_STORAGE_KEYS.HISTORY, JSON.stringify(mergedHistories))
 }
 
-// Apply history setting to form
-const applyHistorySetting = (setting: HistorySetting) => {
-  formData.value.endpoint = setting.endpoint
-  formData.value.accessToken = setting.accessToken
-  showToken.value = false // Hide token for security
-}
+;(() => {
+  const savedHistory = localStorage.getItem(API_STORAGE_KEYS.HISTORY)
 
-// Remove setting from history
-const removeHistorySetting = (index: number) => {
-  settingsHistory.value.splice(index, 1)
-  localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(settingsHistory.value))
+  if (savedHistory) {
+    try {
+      const parsedHistories: typeof settingsHistory.value = JSON.parse(savedHistory || '[]')
 
-  toast.success('History item removed!', {
-    description: 'The setting has been removed from history.',
-  })
-}
+      const haveSnapshot = 'snapshot' in parsedHistories[0]
+      const haveTimestamp = 'timestamp' in parsedHistories[0]
+      // console.log(parsedHistories, haveSnapshot, haveTimestamp)
+
+      if (haveSnapshot && haveTimestamp) settingsHistory.value = parsedHistories
+    } catch (error) {
+      console.error('Failed to parse settings history:', error)
+      settingsHistory.value = []
+    }
+
+    // console.log(settingsHistory.value)
+  }
+})()
 
 // Save settings to localStorage
 const saveSettings = () => {
-  localStorage.setItem(STORAGE_KEYS.ENDPOINT, formData.value.endpoint)
-  localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, formData.value.accessToken)
+  apiSetting.value = { ...formData.value }
 }
 
 // Toggle token visibility
@@ -233,8 +217,22 @@ const handleReset = () => {
   formData.value.accessToken = ''
 
   // Clear localStorage
-  localStorage.removeItem(STORAGE_KEYS.ENDPOINT)
-  localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN)
+  apiSetting.value = {
+    accessToken: '',
+    endpoint: '',
+    params: {
+      size: '100',
+      sentiment_selected: 'linguistik',
+      dateStart: new Date(new Date().setDate(new Date().getDate() - 30))
+        .toISOString()
+        .substring(0, 10),
+      dateStop: new Date().toISOString().substring(0, 10),
+      platforms: ['facebook', 'instagram', 'tiktok', 'twitter', 'youtube'],
+      sentiment: [-1, 0, 1],
+      prokontra: [-1, 0, 1],
+      keywords: [],
+    },
+  }
 
   // Hide token for security
   showToken.value = false
@@ -254,7 +252,7 @@ const handleSubmit = async () => {
     saveSettings()
 
     // Save to history
-    saveToHistory(formData.value.endpoint, formData.value.accessToken)
+    saveToHistory()
 
     // Show success toast
     toast.success('API settings saved successfully!', {
@@ -275,6 +273,5 @@ const handleSubmit = async () => {
 // Load settings on component mount
 onMounted(() => {
   loadSettings()
-  loadHistory()
 })
 </script>

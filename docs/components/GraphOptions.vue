@@ -50,6 +50,8 @@
             Stop Auto
           </Button>
         </div>
+
+        <ApiSetting />
       </div>
 
       <div class="flex gap-2 flex-wrap">
@@ -101,28 +103,28 @@
         </Select>
       </div>
 
-      <div>
-        <label for="threshold-slider-v2" class="block text-sm font-medium mb-1">
-          Label Threshold:
-          <span>{{ labelThreshold }}</span>
-        </label>
-        <Slider
-          id="threshold-slider-v2"
-          v-model="labelThreshold"
-          @update:model-value="updateThreshold"
-          :min="0"
-          :max="10"
-          :step="0.1"
-        />
-      </div>
-
       <!-- Controls Section -->
-      <div class="space-y-4 border-t pt-4">
+      <div class="space-y-4 border-t">
         <h3 class="text-lg font-semibold">Controls</h3>
 
         <div class="grid md:grid-cols-2 gap-3">
+          <div class="md:col-span-2">
+            <label for="threshold-slider-v2" class="block text-sm font-medium mb-1">
+              Label Threshold:
+              <span>{{ labelThreshold }}</span>
+            </label>
+            <Slider
+              id="threshold-slider-v2"
+              v-model="labelThreshold"
+              @update:model-value="updateThreshold"
+              :min="0"
+              :max="10"
+              :step="0.1"
+            />
+          </div>
+
           <!-- Enable/Disable Groups -->
-          <div class="flex items-center space-x-2">
+          <div class="flex space-x-2">
             <Checkbox
               id="show-groups-checkbox"
               class="size-5"
@@ -132,7 +134,7 @@
             <label for="show-groups-checkbox" class="text-sm font-medium">Show Groups</label>
           </div>
 
-          <div class="flex items-center space-x-2">
+          <div class="flex space-x-2">
             <Checkbox
               id="enable-node-click"
               class="size-5"
@@ -144,7 +146,7 @@
             >
           </div>
 
-          <div class="flex items-center space-x-2">
+          <div class="flex space-x-2">
             <Checkbox
               id="enable-node-drag"
               class="size-5"
@@ -278,12 +280,13 @@ import { useFetchGraph } from '@docs/composables/useFetchGraph'
 import type { GraphData } from 'interfaces/types'
 import { useGraphContext } from '@docs/context/graphContext'
 import { Checkbox } from './ui/checkbox'
+import ApiSetting from './ApiSetting.vue'
 
 // Inject the graph context from parent component
-const { data, page, isFetching, isLoading, promise, endpoint, accessToken, reset, loadNextPage } =
-  useFetchGraph()
 
 const graphContext = useGraphContext()
+const { data, isFetching, isLoading, promise, endpoint, accessToken, reset, loadNextPage } =
+  useFetchGraph(graphContext.apiSetting)
 
 if (!graphContext) {
   throw new Error('GraphOptions must be used within a component that provides graphContext')
