@@ -1,11 +1,15 @@
 import ForceGraphRenderer from 'force-graph'
 import type { LinkObject } from 'force-graph'
 import * as d3 from 'd3'
-import type { GraphData, GraphOptions, NodeData, LinkData } from '../../interfaces/types'
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
-import d3ForceClustering from 'd3-force-clustering'
+import type {
+  GraphData,
+  GraphOptions,
+  NodeData,
+  LinkData,
+  ForceType,
+  ForceFn,
+  ForceOptions,
+} from '../../interfaces/types'
 
 export class ForceGraph {
   private container: HTMLElement
@@ -23,7 +27,7 @@ export class ForceGraph {
   constructor(
     container: HTMLElement,
     initialData: GraphData = { nodes: [], links: [] },
-    options: GraphOptions = {},
+    options: GraphOptions = {}
   ) {
     this.container = container
     this.data = initialData
@@ -36,23 +40,25 @@ export class ForceGraph {
     })
 
     // Base options without group defaults
-    const baseOptions = {
+    const baseOptions: GraphOptions = {
       labelThreshold: 1.5,
       showGroups: false,
       ...options,
     }
 
     // Only add group defaults if grouping is enabled
-    const groupDefaults = baseOptions.showGroups ? {
-      groupBy: 'topic',
-      groupBorderColor: '#666',
-      groupBorderWidth: 2,
-      groupBorderOpacity: 0.3,
-      groupLabelColor: '#333',
-      groupLabelSize: 16,
-      groupLabelThreshold: 0.8,
-      groupPadding: 20,
-    } : {}
+    const groupDefaults = baseOptions.showGroups
+      ? {
+          groupBy: 'topic',
+          groupBorderColor: '#666',
+          groupBorderWidth: 2,
+          groupBorderOpacity: 0.3,
+          groupLabelColor: '#333',
+          groupLabelSize: 16,
+          groupLabelThreshold: 0.8,
+          groupPadding: 20,
+        }
+      : {}
 
     this.options = {
       ...baseOptions,
@@ -63,63 +69,20 @@ export class ForceGraph {
   }
 
   private initGraph() {
-    console.log(this.options.width, this.options.width)
+    // Apply initial options
+    this.applyOptions()
 
-    this.graph
-      .width(this.options.width ?? 800)
-      .height(this.options.height ?? 400)
-      .onNodeClick((node) => {
-        console.log('Node clicked:', node)
-
-        // Call custom node click handler if provided
-        if (this.options.nodeClickHandler) {
-          this.options.nodeClickHandler(node)
-        }
-
-        this.focusPosition({ x: node.x, y: node.y })
-      })
-      // .d3AlphaDecay(0)
-      // .d3VelocityDecay(0.08)
-      // .cooldownTicks(0)
-      .cooldownTime(this.calculateCooldownTime())
-      .d3Force(
-        'cluster',
-        this.options.cluster ? d3ForceClustering().clusterId(this.options.cluster) : null,
-      )
-      // Force-directed layout with no collision
-      .d3Force(
-        'collide',
-        this.options.collide
-          ? d3.forceCollide<NodeData>().radius((node) => {
-              if (this.options.collide) return this.options.collide(node)
-              return node.marker.radius
-            })
-          : null,
-      )
-    // size calculated by node size + math(n) for better performance on first render
-    // large size of graph consuming high memory when animating first render
-    // so when render large graph, less cooldown time == quick display == high memory usage
-    // more cooldown time == slow animating display == lower memory usage
-
-    if (this.options.keepDragPosition) {
-      this.graph.onNodeDragEnd((node) => {
-        node.fx = node.x
-        node.fy = node.y
-      })
-    }
+    this.render()
 
     // Set initial data
     this.graphData(this.data)
 
-    // Apply initial options
-    this.applyOptions()
-    this.render()
     // this.refreshGraph();
 
     // fit to canvas when engine stops
     this.graph.onEngineStop(() => this.graph.zoomToFit(400))
-    // setTimeout(() => {
 
+    // setTimeout(() => {
     //   this.graph.cooldownTicks(undefined);
     // }, 100);
   }
@@ -144,19 +107,39 @@ export class ForceGraph {
   }
 
   public render() {
-    // Default force-directed layout
     this.graph
-      .d3Force('charge', d3.forceManyBody().strength(-100))
-      .d3Force(
-        'link',
-        d3
-          .forceLink()
-          .id((d) => d.index ?? '')
-          .distance(30),
-      )
-      .d3Force('center', d3.forceCenter())
+      .width(this.options.width ?? 800)
+      .height(this.options.height ?? 400)
+      // .d3AlphaDecay(0.01)
+      // .d3VelocityDecay(0.08)
+      // .cooldownTicks(5000)
+      .cooldownTime(this.getCooldownTime())
+      .d3Force('charge', d3.forceManyBody().strength(this.options.nodeGap ?? -50))
+
+    if (typeof this.options.nodeClickHandler == 'function') {
+      this.graph.onNodeClick((node) => {
+        // Call custom node click handler if provided
+        this.options.nodeClickHandler!(node)
+
+        // this.focusPosition({ x: node.x, y: node.y })
+      })
+    }
   }
-  public applyOptions() {
+  public force(options: ForceOptions): void {
+    Object.entries(options).forEach(([key, func]) => {
+      this.graph.d3Force(key, func)
+    })
+  }
+  private applyOptions() {
+    if (this.options.keepDragPosition) {
+      this.graph.onNodeDragEnd((node) => {
+        node.fx = node.x
+        node.fy = node.y
+      })
+    }
+    if (!this.options.pointerInteraction) this.graph.enablePointerInteraction(false)
+    if (this.options.force) this.force(this.options.force)
+
     // Set up canvas object rendering for both groups and nodes
     this.graph.nodeCanvasObject((node, ctx: CanvasRenderingContext2D, globalScale: number) => {
       // Render groups first (only once per frame, not per node)
@@ -190,7 +173,7 @@ export class ForceGraph {
         const color =
           typeof this.options.nodeLabelColor === 'function'
             ? this.options.nodeLabelColor(node)
-            : (this.options.nodeLabelColor ?? '#555')
+            : this.options.nodeLabelColor ?? '#555'
         ctx.font = `${Math.max(size, 8)}px Arial`
         ctx.fillStyle = color
         ctx.textAlign = 'center'
@@ -233,12 +216,12 @@ export class ForceGraph {
 
     // Create a map of existing links
     const existingLinkKeys = new Set(
-      this.data.links.map((link) => this.createLinkKey(link.source, link.target)),
+      this.data.links.map((link) => this.createLinkKey(link.source, link.target))
     )
 
     // Filter out duplicate links
     const newLinks = data.links.filter(
-      (link) => !existingLinkKeys.has(this.createLinkKey(link.source, link.target)),
+      (link) => !existingLinkKeys.has(this.createLinkKey(link.source, link.target))
     )
 
     // Update the data
@@ -281,28 +264,28 @@ export class ForceGraph {
     // Apply directional particles
     if (this.options.linkDirectionalParticles) {
       this.graph.linkDirectionalParticles(
-        (link) => this.getLinkProperty(this.options.linkDirectionalParticles, link) ?? 0,
+        (link) => this.getLinkProperty(this.options.linkDirectionalParticles, link) ?? 0
       )
     }
 
     // Apply directional particle speed
     if (this.options.linkDirectionalParticleSpeed !== undefined) {
       this.graph.linkDirectionalParticleSpeed(
-        (link) => this.getLinkProperty(this.options.linkDirectionalParticleSpeed, link) ?? 0,
+        (link) => this.getLinkProperty(this.options.linkDirectionalParticleSpeed, link) ?? 0
       )
     }
 
     // Apply directional particle width
     if (this.options.linkDirectionalParticleWidth !== undefined) {
       this.graph.linkDirectionalParticleWidth(
-        (link) => this.getLinkProperty(this.options.linkDirectionalParticleWidth, link) ?? 0,
+        (link) => this.getLinkProperty(this.options.linkDirectionalParticleWidth, link) ?? 0
       )
     }
 
     // Apply directional particle color
     if (this.options.linkDirectionalParticleColor !== undefined) {
       this.graph.linkDirectionalParticleColor(
-        (link) => this.getLinkProperty(this.options.linkDirectionalParticleColor, link) ?? '#aaa',
+        (link) => this.getLinkProperty(this.options.linkDirectionalParticleColor, link) ?? '#aaa'
       )
     }
   }
@@ -448,7 +431,7 @@ export class ForceGraph {
           labelX - textWidth / 2 - 4,
           labelY - textHeight / 2 - 2,
           textWidth + 8,
-          textHeight + 4,
+          textHeight + 4
         )
 
         ctx.globalAlpha = 1
@@ -487,42 +470,25 @@ export class ForceGraph {
     return this.nodesMap.has(id.toString())
   }
 
-  public getNodeCount(): number {
-    return this.nodesMap.size
-  }
-
   /**
    * Calculate dynamic cooldown time based on node count
-   * Minimum: 2500ms
-   * Normal: node.length * 150ms
-   */
-  private calculateCooldownTime(): number {
-    const nodeCount = this.data.nodes.length
-    const calculatedTime = (nodeCount * 5) / 2
-    const finalCooldownTime = Math.max(2500, calculatedTime)
-
-    console.log(
-      `Dynamic Cooldown Time: ${nodeCount} nodes × 150ms = ${calculatedTime}ms, final: ${finalCooldownTime}ms`,
-    )
-
-    return finalCooldownTime
-  }
-
-  /**
-   * Get the current calculated cooldown time
+   * size calculated by node size + math(n) for better performance on first render
+   * large size of graph consuming high memory when animating first render
+   * so when render large graph, less cooldown time == quick display == high memory usage
+   * more cooldown time == slow animating display == lower memory usage
+   * Minimum: 4s (4000ms)
+   * Normal: node.length * 125%
    */
   public getCooldownTime(): number {
-    return this.calculateCooldownTime()
-  }
+    const nodeCount = this.data.nodes.length
+    const calculatedTime = nodeCount * (125 / 100) // 125%
+    const finalCooldownTime = Math.max(4000, calculatedTime)
 
-  /**
-   * Manually update the cooldown time based on current node count
-   */
-  public updateCooldownTime(): void {
-    this.graph.cooldownTime(this.calculateCooldownTime())
-  }
-  public getLinkCount(): number {
-    return this.graph.graphData().links.length
+    // console.log(
+    //   `Dynamic Cooldown Time: ${nodeCount} nodes × 150ms = ${calculatedTime}ms, final: ${finalCooldownTime}ms`
+    // )
+
+    return finalCooldownTime
   }
   public getDataSize(): { nodes: number; links: number } {
     const { nodes, links } = this.graph.graphData()
@@ -564,7 +530,7 @@ export class ForceGraph {
         return sourceId.toString() !== nodeId && targetId.toString() !== nodeId
       })
       // Update cooldown time after removing node
-      this.graph.cooldownTime(this.calculateCooldownTime())
+      this.graph.cooldownTime(this.getCooldownTime())
       this.refreshGraph()
       return true
     }
@@ -593,11 +559,8 @@ export class ForceGraph {
       links: Array.from(this.linkMap.values()),
     }
 
-    // Update the graph
-    console.log('this.data', this.data, newData)
-
     // Update cooldown time based on new node count
-    this.graph.cooldownTime(this.calculateCooldownTime())
+    this.graph.cooldownTime(this.getCooldownTime())
 
     // this.graphData(this.data)
 
@@ -690,7 +653,7 @@ export class ForceGraph {
     }
 
     // Update cooldown time based on new node count
-    this.graph.cooldownTime(this.calculateCooldownTime())
+    this.graph.cooldownTime(this.getCooldownTime())
 
     this.graph.graphData(this.data)
     return this
@@ -701,7 +664,7 @@ export class ForceGraph {
    */
   public showGroups(show: boolean): ForceGraph {
     this.options.showGroups = show
-    
+
     // If enabling groups and group defaults are not set, apply them
     if (show) {
       const groupDefaults = {
@@ -714,15 +677,15 @@ export class ForceGraph {
         groupLabelThreshold: 0.8,
         groupPadding: 20,
       }
-      
+
       // Only set defaults for properties that are undefined
       Object.entries(groupDefaults).forEach(([key, value]) => {
         if (this.options[key as keyof GraphOptions] === undefined) {
-          (this.options as any)[key] = value
+          ;(this.options as any)[key] = value
         }
       })
     }
-    
+
     this.applyOptions()
     // Force a refresh to immediately show/hide groups
     this.refreshGraph()

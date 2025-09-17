@@ -1,3 +1,4 @@
+import type { ForceGraph } from '@/index'
 import type {
   NodeObject as BaseNodeObject,
   LinkObject as BaseLinkObject,
@@ -36,6 +37,14 @@ export interface GraphData extends BaseGraphData<NodeData, LinkData> {
   // totalPages?: number;
   // isLastPage?: boolean;
 }
+export type ForceType = 'link' | 'charge' | 'center' | 'cluster' | string
+export interface ForceFn<N extends BaseNodeObject = BaseNodeObject> {
+  (alpha: number): void
+  initialize?: (nodes: N[], ...args: any[]) => void
+  [key: string]: any
+}
+
+export type ForceOptions = Record<ForceType, ForceFn<NodeData>>
 
 export interface GraphOptions {
   height?: number
@@ -48,11 +57,12 @@ export interface GraphOptions {
   nodeColor?: string | ((node: NodeData) => string)
   nodeBorderColor?: string | ((node: NodeData) => string)
   nodeBorderWidth?: number | ((node: NodeData) => number)
+  nodeGap?: number // default: -50
   linkLabel?: string | ((link: LinkData) => string)
   nodeIcon?: string | ((node: NodeData) => string)
   cluster?: (node: NodeData) => boolean | undefined | null
-  collide?: (node: NodeData) => number
   loading?: boolean
+  pointerInteraction?: boolean
   keepDragPosition?: boolean
   nodeClickHandler?: (node: NodeData) => void
   // Link curve options
@@ -61,6 +71,7 @@ export interface GraphOptions {
   linkDirectionalParticleSpeed?: number | ((link: LinkData) => number)
   linkDirectionalParticleWidth?: number | ((link: LinkData) => number)
   linkDirectionalParticleColor?: string | ((link: LinkData) => string)
+
   // Group visualization options
   showGroups?: boolean
   groupBy?: string | ((node: NodeData) => string | undefined)
@@ -71,4 +82,7 @@ export interface GraphOptions {
   groupLabelSize?: number
   groupLabelThreshold?: number // Zoom level threshold for showing group labels
   groupPadding?: number // Padding around group boundaries
+
+  // force
+  force?: ForceOptions // same as graph.force({'type': forcefn()})
 }
