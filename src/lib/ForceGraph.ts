@@ -8,7 +8,6 @@ import type {
   LinkData,
   ForceType,
   ForceFn,
-  ForceOptions,
 } from '../../interfaces/types'
 
 export class ForceGraph {
@@ -125,10 +124,8 @@ export class ForceGraph {
       })
     }
   }
-  public force(options: ForceOptions): void {
-    Object.entries(options).forEach(([key, func]) => {
-      this.graph.d3Force(key, func)
-    })
+  public force(key: ForceType, func: ForceFn<NodeData>) {
+    return this.graph.d3Force(key, func)
   }
   private applyOptions() {
     if (this.options.keepDragPosition) {
@@ -138,7 +135,6 @@ export class ForceGraph {
       })
     }
     if (!this.options.pointerInteraction) this.graph.enablePointerInteraction(false)
-    if (this.options.force) this.force(this.options.force)
 
     // Set up canvas object rendering for both groups and nodes
     this.graph.nodeCanvasObject((node, ctx: CanvasRenderingContext2D, globalScale: number) => {

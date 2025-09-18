@@ -39,29 +39,14 @@ import { ForceGraph } from '@/lib/ForceGraph'
 
 import { computed, onMounted, watch, useTemplateRef } from 'vue'
 import { useDark, useElementSize } from '@vueuse/core'
-import type {
-  ForceOptions,
-  GraphData,
-  GraphOptions as GraphOptionsType,
-  NodeData,
-} from '../../interfaces/types'
+import type { GraphData, GraphOptions as GraphOptionsType, NodeData } from '../../interfaces/types'
 import GraphOptions from './GraphOptions.vue'
 import { useFetchGraph } from '@docs/composables/useFetchGraph'
 import { registerGraphContext } from '@docs/context/graphContext'
-import {
-  forceCenter,
-  forceCollide,
-  forceLink,
-  forceRadial,
-  forceX,
-  forceY,
-  type SimulationNodeDatum,
-} from 'd3'
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import d3ForceClustering from 'd3-force-clustering'
-import type { FormatCodeOptions } from 'typescript'
 
 const isDark = useDark()
 
@@ -129,35 +114,6 @@ watch([() => loadMoreBtn.value.status, pagination], () => {
   }
 })
 
-const forceOptions: ForceOptions = {
-  // radial: forceRadial(500, height.value / 2, width.value / 2),
-  // radial: forceRadial(
-  //   (d) => {
-  //     if (d.depth === 1 && d.hasChild) return 80 // anak dengan subtree lebih jauh
-  //     return 40 // default anak dekat
-  //   },
-  //   (d) => d.parent.x,
-  //   (d) => d.parent.y
-  // ),
-  // radial: forceRadial(-500),
-  // x: forceX(width.value / 2),
-  // y: forceY(height.value / 2),
-
-  link: forceLink()
-    .id((d: any & NodeData) => d.id)
-    // .distance(100)
-    .strength((d: any & NodeData) => (d.platform == 'twitter' ? 1 : 0.7)),
-  // center: forceCenter(),
-  cluster: d3ForceClustering().clusterId((node: NodeData) => node.sentiment || node.platform),
-  // cluster: d3ForceClustering().clusterId((node: NodeData) => node.sentiment),
-  // collide: forceCollide<NodeData>().radius((node) => {
-  //   // const isTopic = node.type === 'topic' || !node.type
-  //   // if (isTopic) return nodeSize(node) * 10
-  //   // else if (node.type === 'post') return nodeSize(node) * 5
-  //   return nodeSize(node) * 3
-  // }),
-}
-
 const graphOptions = computed<GraphOptionsType>(() => ({
   width: width.value,
   height: height.value,
@@ -202,14 +158,14 @@ const graphOptions = computed<GraphOptionsType>(() => ({
   nodeClickHandler(node) {
     alert(node.label)
   },
-  force: forceOptions,
   // pointerInteraction: true,
 }))
 
 onMounted(async () => {
   if (!graphContainer.value) return
   graph.value = new ForceGraph(graphContainer.value, initialData, graphOptions.value)
-  // graph.value.force(forceOptions)
+
+  applyCluster(graph.value)
 
   // Set the data manager on the graph
   // if (graph.value && dataManager.value) {
@@ -246,6 +202,46 @@ onMounted(async () => {
   // Set up interval to check loading status
   updateLoadingIndicator()
 })
+
+function applyCluster(graph: ForceGraph) {
+  graph.force(
+    'cluster',
+    d3ForceClustering().clusterId((node: NodeData) => node.sentiment)
+  )
+  graph.force(
+    'cluster',
+    d3ForceClustering().clusterId((node: NodeData) => node.platform)
+  )
+  // graph.force('radial', forceRadial(500, height.value / 2, width.value / 2)))
+  // graph.force(
+  //   'radial',
+  //   forceRadial(
+  //     (d) => {
+  //       if (d.depth === 1 && d.hasChild) return 80 // anak dengan subtree lebih jauh
+  //       return 40 // default anak dekat
+  //     },
+  //     (d) => d.parent.x,
+  //     (d) => d.parent.y
+  //   )
+  // )
+  // graph.force('radial', forceRadial(-500))
+  // graph.force('x', forceX(width.value / 2))
+  // graph.force('y', forceY(height.value / 2))
+  // graph.force('link', forceLink()
+  //   .id((d: any & NodeData) => d.id)
+  //   // .distance(100)
+  //   .strength((d: any & NodeData) => (d.platform == 'twitter' ? 1 : 0.7))
+  //)
+  // graph.force('center', forceCenter())
+  // graph.force('cluster', d3ForceClustering().clusterId((node: NodeData) => node.sentiment || node.platform))
+  // graph.force('cluster', d3ForceClustering().clusterId((node: NodeData) => node.sentiment))
+  // graph.force('collide', forceCollide<NodeData>().radius((node) => {
+  //   // const isTopic = node.type === 'topic' || !node.type
+  //   // if (isTopic) return nodeSize(node) * 10
+  //   // else if (node.type === 'post') return nodeSize(node) * 5
+  //   return nodeSize(node) * 3
+  // }))
+}
 
 function nodeSize(node: NodeData) {
   if (!node.type) return 3

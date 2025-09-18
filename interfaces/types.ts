@@ -44,8 +44,6 @@ export interface ForceFn<N extends BaseNodeObject = BaseNodeObject> {
   [key: string]: any
 }
 
-export type ForceOptions = Record<ForceType, ForceFn<NodeData>>
-
 export interface GraphOptions {
   height?: number
   width?: number
@@ -82,7 +80,4 @@ export interface GraphOptions {
   groupLabelSize?: number
   groupLabelThreshold?: number // Zoom level threshold for showing group labels
   groupPadding?: number // Padding around group boundaries
-
-  // force
-  force?: ForceOptions // same as graph.force({'type': forcefn()})
 }
