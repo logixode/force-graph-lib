@@ -47,11 +47,12 @@ export interface ForceFn<N extends BaseNodeObject = BaseNodeObject> {
 export interface GraphOptions {
   height?: number
   width?: number
-  labelThreshold?: number
+  labelThreshold?: number // Ratio threshold: labels show when label_size <= node_size * threshold (default: 1.0)
   nodeSize?: number | ((node: NodeData) => number)
   linkWidth?: number | ((link: LinkData) => number)
   nodeLabel?: string | ((node: NodeData) => string)
   nodeLabelColor?: string | ((node: NodeData) => string)
+  labelFontSize?: number // Font size for node labels in pixels (default: 16)
   nodeColor?: string | ((node: NodeData) => string)
   nodeBorderColor?: string | ((node: NodeData) => string)
   nodeBorderWidth?: number | ((node: NodeData) => number)

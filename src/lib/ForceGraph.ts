@@ -40,7 +40,7 @@ export class ForceGraph {
 
     // Base options without group defaults
     const baseOptions: GraphOptions = {
-      labelThreshold: 1.5,
+      labelThreshold: 1.5, // Show labels when they're not bigger than the node
       showGroups: false,
       ...options,
     }
@@ -165,16 +165,21 @@ export class ForceGraph {
       }
 
       const label = this.getNodeLabel(node)
-      if (label && globalScale >= (this.options.labelThreshold || 1.5)) {
+      if (label && this.shouldShowLabel(node, globalScale)) {
         const color =
           typeof this.options.nodeLabelColor === 'function'
             ? this.options.nodeLabelColor(node)
             : this.options.nodeLabelColor ?? '#555'
-        ctx.font = `${Math.max(size, 8)}px Arial`
+
+        // Use fixed font size that doesn't scale with zoom
+        const fontSize = this.options.labelFontSize || 14
+        const scaledFontSize = fontSize / globalScale
+
+        ctx.font = `${scaledFontSize}px Arial`
         ctx.fillStyle = color
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText(label, node.x || 0, (node.y || 0) + size + 2)
+        ctx.fillText(label, node.x || 0, (node.y || 0) + size + scaledFontSize / 2 + 2)
       }
     })
 
@@ -194,10 +199,25 @@ export class ForceGraph {
       return this.options.nodeLabel(node)
     }
 
-    const scale = this.graph.zoom()
-    if (scale < (this.options.labelThreshold || 1.5)) return ''
-
     return node.label || (node.id as string)
+  }
+
+  /**
+   * Check if label should be shown based on threshold logic
+   * The threshold determines when labels become too big relative to nodes
+   */
+  private shouldShowLabel(node: NodeData, globalScale: number): boolean {
+    const nodeSize = this.getNodeSize(node) * 2 // diameter
+    const labelFontSize = this.options.labelFontSize || 14
+
+    // Calculate the effective label size in world coordinates
+    const effectiveLabelSize = labelFontSize / globalScale
+
+    // Default threshold: show label when it's not bigger than the node
+    const threshold = this.options.labelThreshold || 1.5
+
+    // Show label when effective label size is smaller than node size * threshold
+    return effectiveLabelSize <= nodeSize * threshold
   }
 
   public updateData(data: GraphData): void {
