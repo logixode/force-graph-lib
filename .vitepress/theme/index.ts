@@ -14,6 +14,7 @@ import Layout from './Layout.vue'
 
 const Demo = defineClientComponent(() => import('@docs/components/Demo.vue'))
 const Curves = defineClientComponent(() => import('@docs/components/Curves.vue'))
+const DagTree = defineClientComponent(() => import('@docs/components/DagTree.vue'))
 
 export default {
   extends: DefaultTheme,
@@ -36,5 +37,6 @@ export default {
     // Register global components
     app.component('Demo', Demo)
     app.component('Curves', Curves)
+    app.component('DagTree', DagTree)
   },
 } satisfies Theme

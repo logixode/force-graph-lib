@@ -53,6 +53,7 @@ export default defineConfig({
         items: [
           { text: 'Demo', link: '/demo' },
           { text: 'Curves Examples', link: '/curves' },
+          { text: 'DAG Tree', link: '/dag-tree' },
         ],
       },
     ],
