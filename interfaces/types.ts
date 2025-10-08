@@ -59,7 +59,6 @@ export interface GraphOptions {
   nodeGap?: number // default: -50
   linkLabel?: string | ((link: LinkData) => string)
   nodeIcon?: string | ((node: NodeData) => string)
-  cluster?: (node: NodeData) => boolean | undefined | null
   loading?: boolean
   pointerInteraction?: boolean
   keepDragPosition?: boolean
