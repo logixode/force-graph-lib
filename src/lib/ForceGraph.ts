@@ -1,32 +1,54 @@
 import ForceGraphRenderer from 'force-graph'
-import type { LinkObject } from 'force-graph'
 import * as d3 from 'd3'
 import type {
-  GraphData,
-  GraphOptions,
   NodeData,
-  LinkData,
   ForceType,
   ForceFn,
+  GraphOptions,
+  LinkData,
+  GraphData,
 } from '../../interfaces/types'
 
-export class ForceGraph {
+/**
+ * ForceGraph with flexible generic types.
+ *
+ * - `TNode`: your node shape; must include an `id` (`string | number`).
+ * - `TLink`: your link shape; by default `LinkObject<TNode>`.
+ *
+ * Usage examples:
+ *
+ * // 1) Use defaults (compatible with NodeData/LinkObject)
+ * const graph = new ForceGraph(container, defaultData)
+ *
+ * // 2) Provide custom shapes
+ * type MyNode = NodeObject & { id: string; color?: string; size?: number }
+ * type MyLink = LinkObject<MyNode> & { weight?: number }
+ * const graph = new ForceGraph<MyNode, MyLink>(container, myData, {
+ *   nodeSize: (n) => n.size ?? 2,
+ *   nodeColor: (n) => n.color ?? '#999',
+ *   linkWidth: (l) => (l.weight ?? 1) * 2,
+ * })
+ */
+export class ForceGraph<
+  TNode extends NodeData & { id: string | number } = NodeData,
+  TLink extends LinkData<TNode> = LinkData<TNode>
+> {
   private container: HTMLElement
-  private graph: ForceGraphRenderer<NodeData, LinkObject<NodeData>>
-  private data: GraphData = { nodes: [], links: [] }
-  private nodesMap: Map<string, NodeData> = new Map()
-  private linkMap: Map<string, LinkData> = new Map()
-  private options: GraphOptions
+  private graph: ForceGraphRenderer<TNode, TLink>
+  private data: GraphData<TNode, TLink> = { nodes: [], links: [] }
+  private nodesMap: Map<string, TNode> = new Map()
+  private linkMap: Map<string, TLink> = new Map()
+  private options: GraphOptions<TNode, TLink>
   private worker: Worker | null = null
   private groupBounds: Map<
     string,
-    { minX: number; minY: number; maxX: number; maxY: number; nodes: NodeData[] }
+    { minX: number; minY: number; maxX: number; maxY: number; nodes: TNode[] }
   > = new Map()
 
   constructor(
     container: HTMLElement,
-    initialData: GraphData = { nodes: [], links: [] },
-    options: GraphOptions = {}
+    initialData: GraphData<TNode, TLink> = { nodes: [], links: [] },
+    options: GraphOptions<TNode, TLink> = {}
   ) {
     this.container = container
     this.data = initialData
@@ -39,7 +61,7 @@ export class ForceGraph {
     })
 
     // Base options without group defaults
-    const baseOptions: GraphOptions = {
+    const baseOptions: GraphOptions<TNode, TLink> = {
       labelThreshold: 1.5, // Show labels when they're not bigger than the node
       showGroups: false,
       ...options,
@@ -85,7 +107,7 @@ export class ForceGraph {
     //   this.graph.cooldownTicks(undefined);
     // }, 100);
   }
-  public renderer() {
+  public renderer(): ForceGraphRenderer<TNode, TLink> {
     return this.graph
   }
 
@@ -118,13 +140,13 @@ export class ForceGraph {
     if (typeof this.options.nodeClickHandler == 'function') {
       this.graph.onNodeClick((node) => {
         // Call custom node click handler if provided
-        this.options.nodeClickHandler!(node)
+        this.options.nodeClickHandler!(node as TNode)
 
         // this.focusPosition({ x: node.x, y: node.y })
       })
     }
   }
-  public force(key: ForceType, func: ForceFn<NodeData>) {
+  public force(key: ForceType, func: ForceFn<TNode>) {
     return this.graph.d3Force(key, func)
   }
   private applyOptions() {
@@ -187,26 +209,26 @@ export class ForceGraph {
     this.applyLinkOptions()
   }
 
-  private getNodeSize(node: NodeData): number {
+  private getNodeSize(node: TNode): number {
     if (typeof this.options.nodeSize === 'function') {
-      return this.options.nodeSize(node) || node.marker?.radius
+      return this.options.nodeSize(node) || (node as any)?.marker?.radius
     }
-    return this.options.nodeSize || node.marker?.radius || 1
+    return this.options.nodeSize || (node as any)?.marker?.radius || 1
   }
 
-  private getNodeLabel(node: NodeData): string {
+  private getNodeLabel(node: TNode): string {
     if (typeof this.options.nodeLabel === 'function') {
       return this.options.nodeLabel(node)
     }
 
-    return node.label || (node.id as string)
+    return (node as any)?.label || (node.id as string)
   }
 
   /**
    * Check if label should be shown based on threshold logic
    * The threshold determines when labels become too big relative to nodes
    */
-  private shouldShowLabel(node: NodeData, globalScale: number): boolean {
+  private shouldShowLabel(node: TNode, globalScale: number): boolean {
     const nodeSize = this.getNodeSize(node) * 2 // diameter
     const labelFontSize = this.options.labelFontSize || 14
 
@@ -220,7 +242,7 @@ export class ForceGraph {
     return effectiveLabelSize <= nodeSize * threshold
   }
 
-  public updateData(data: GraphData): void {
+  public updateData(data: GraphData<TNode, TLink>): void {
     // Merge new data with existing data
     const existingNodeIds = new Set(this.data.nodes.map((node) => node.id.toString()))
     const newNodes = data.nodes.filter((node) => !existingNodeIds.has(node.id.toString()))
@@ -251,15 +273,15 @@ export class ForceGraph {
     // this.graphData(this.data); // same
   }
 
-  private getNodeColor(node: NodeData): string {
+  private getNodeColor(node: TNode): string {
     if (typeof this.options.nodeColor === 'function') {
       const color = this.options.nodeColor(node)
       if (color) return color
     }
-    return node.color ?? ''
+    return (node as any)?.color ?? ''
   }
 
-  private getNodeBorderColor(node: NodeData): string {
+  private getNodeBorderColor(node: TNode): string {
     if (typeof this.options.nodeBorderColor === 'function') {
       return this.options.nodeBorderColor(node)
     }
@@ -269,7 +291,9 @@ export class ForceGraph {
   private applyLinkOptions() {
     // Apply link width
     if (this.options.linkWidth !== undefined) {
-      this.graph.linkWidth((link) => this.getLinkProperty(this.options.linkWidth, link) ?? 1)
+      this.graph.linkWidth(
+        (link) => this.getLinkProperty(this.options.linkWidth!, link as TLink) ?? 1
+      )
     }
 
     // Apply link curvature
@@ -280,35 +304,38 @@ export class ForceGraph {
     // Apply directional particles
     if (this.options.linkDirectionalParticles) {
       this.graph.linkDirectionalParticles(
-        (link) => this.getLinkProperty(this.options.linkDirectionalParticles, link) ?? 0
+        (link) => this.getLinkProperty(this.options.linkDirectionalParticles!, link as TLink) ?? 0
       )
     }
 
     // Apply directional particle speed
     if (this.options.linkDirectionalParticleSpeed !== undefined) {
       this.graph.linkDirectionalParticleSpeed(
-        (link) => this.getLinkProperty(this.options.linkDirectionalParticleSpeed, link) ?? 0
+        (link) =>
+          this.getLinkProperty(this.options.linkDirectionalParticleSpeed!, link as TLink) ?? 0
       )
     }
 
     // Apply directional particle width
     if (this.options.linkDirectionalParticleWidth !== undefined) {
       this.graph.linkDirectionalParticleWidth(
-        (link) => this.getLinkProperty(this.options.linkDirectionalParticleWidth, link) ?? 0
+        (link) =>
+          this.getLinkProperty(this.options.linkDirectionalParticleWidth!, link as TLink) ?? 0
       )
     }
 
     // Apply directional particle color
     if (this.options.linkDirectionalParticleColor !== undefined) {
       this.graph.linkDirectionalParticleColor(
-        (link) => this.getLinkProperty(this.options.linkDirectionalParticleColor, link) ?? '#aaa'
+        (link) =>
+          this.getLinkProperty(this.options.linkDirectionalParticleColor!, link as TLink) ?? '#aaa'
       )
     }
   }
 
-  private getLinkCurvature(link: LinkObject<NodeData>): number {
+  private getLinkCurvature(link: TLink): number {
     if (typeof this.options.linkCurvature === 'function') {
-      return this.options.linkCurvature(link as LinkData)
+      return this.options.linkCurvature(link)
     }
     if (typeof this.options.linkCurvature === 'string') {
       // If it's a string, treat it as a property name on the link object
@@ -321,9 +348,9 @@ export class ForceGraph {
     return (link as any).curvature || 0
   }
 
-  private getLinkProperty<T>(option: T | ((link: LinkData) => T), link: LinkObject<NodeData>): T {
+  private getLinkProperty<T>(option: T | ((link: TLink) => T), link: TLink): T {
     if (typeof option === 'function') {
-      return (option as (link: LinkData) => T)(link as LinkData)
+      return (option as (link: TLink) => T)(link)
     }
     return option
   }
@@ -338,7 +365,7 @@ export class ForceGraph {
     const padding = this.options.groupPadding || 20
 
     // Group nodes by the specified property
-    const groups: Map<string, NodeData[]> = new Map()
+    const groups: Map<string, TNode[]> = new Map()
 
     this.data.nodes.forEach((node) => {
       const groupId = this.getNodeGroupId(node)
@@ -384,7 +411,7 @@ export class ForceGraph {
   /**
    * Get the group ID for a node
    */
-  private getNodeGroupId(node: NodeData): string | undefined {
+  private getNodeGroupId(node: TNode): string | undefined {
     if (!this.options.groupBy) return undefined
 
     if (typeof this.options.groupBy === 'function') {
@@ -478,7 +505,7 @@ export class ForceGraph {
     return this.options.groupLabelColor || '#333'
   }
 
-  public getNodeById(id: string | number): NodeData | undefined {
+  public getNodeById(id: string | number): TNode | undefined {
     return this.nodesMap.get(id.toString())
   }
 
@@ -518,7 +545,7 @@ export class ForceGraph {
     return Array.from(this.nodesMap.keys())
   }
 
-  public updateNode(id: string | number, updates: Partial<NodeData>): boolean {
+  public updateNode(id: string | number, updates: Partial<TNode>): boolean {
     const node = this.nodesMap.get(id.toString())
     if (node) {
       Object.assign(node, updates)
@@ -541,9 +568,9 @@ export class ForceGraph {
       this.data.nodes = this.data.nodes.filter((node) => node.id.toString() !== nodeId)
       // Remove associated links
       this.data.links = this.data.links.filter((link) => {
-        const sourceId = typeof link.source === 'object' ? link.source.id : link.source
-        const targetId = typeof link.target === 'object' ? link.target.id : link.target
-        return sourceId.toString() !== nodeId && targetId.toString() !== nodeId
+        const sourceId = typeof link.source === 'object' ? (link.source as any).id : link.source
+        const targetId = typeof link.target === 'object' ? (link.target as any).id : link.target
+        return sourceId?.toString() !== nodeId && targetId?.toString() !== nodeId
       })
       // Update cooldown time after removing node
       this.graph.cooldownTime(this.getCooldownTime())
@@ -553,7 +580,7 @@ export class ForceGraph {
     return false
   }
 
-  public async addData(newData: GraphData): Promise<void> {
+  public async addData(newData: GraphData<TNode, TLink>): Promise<void> {
     // Add new nodes if they don't exist
     newData.nodes.forEach((node) => {
       if (!this.nodesMap.has(node.id.toString())) {
@@ -588,7 +615,7 @@ export class ForceGraph {
     this.render()
   }
 
-  public setOptions(options: Partial<GraphOptions>) {
+  public setOptions(options: Partial<GraphOptions<TNode, TLink>>) {
     this.options = { ...this.options, ...options }
     this.applyOptions()
   }
@@ -625,26 +652,31 @@ export class ForceGraph {
     this.initGraph()
   }
 
-  public getData(): GraphData {
+  public getData(): GraphData<TNode, TLink> {
     return this.data
   }
-  public getNodesData(): GraphData['nodes'] {
+  public getNodesData(): GraphData<TNode, TLink>['nodes'] {
     return this.data.nodes
   }
-  public getLinksData(): GraphData['links'] {
+  public getLinksData(): GraphData<TNode, TLink>['links'] {
     return this.data.links
   }
 
-  private createLinkKey(source: string | number | NodeData, target: string | number | NodeData) {
-    const sourceId = typeof source === 'object' ? source.id : source
-    const targetId = typeof target === 'object' ? target.id : target
+  private createLinkKey(
+    source: string | number | TNode | undefined,
+    target: string | number | TNode | undefined
+  ) {
+    const sourceId =
+      source === undefined ? 'undefined' : typeof source === 'object' ? (source as any).id : source
+    const targetId =
+      target === undefined ? 'undefined' : typeof target === 'object' ? (target as any).id : target
     return `${sourceId}-${targetId}`
   }
   /**
    * Set graph data (chainable method)
    * @param data - Graph data to set
    */
-  public graphData(data: GraphData): ForceGraph {
+  public graphData(data: GraphData<TNode, TLink>): ForceGraph<TNode, TLink> {
     this.nodesMap.clear()
     this.linkMap.clear()
 
@@ -678,7 +710,7 @@ export class ForceGraph {
   /**
    * Enable or disable group visualization
    */
-  public showGroups(show: boolean): ForceGraph {
+  public showGroups(show: boolean): ForceGraph<TNode, TLink> {
     this.options.showGroups = show
 
     // If enabling groups and group defaults are not set, apply them
@@ -696,7 +728,7 @@ export class ForceGraph {
 
       // Only set defaults for properties that are undefined
       Object.entries(groupDefaults).forEach(([key, value]) => {
-        if (this.options[key as keyof GraphOptions] === undefined) {
+        if (this.options[key as keyof GraphOptions<TNode, TLink>] === undefined) {
           ;(this.options as any)[key] = value
         }
       })
@@ -711,7 +743,9 @@ export class ForceGraph {
   /**
    * Set the property to group nodes by
    */
-  public setGroupBy(groupBy: string | ((node: NodeData) => string | undefined)): ForceGraph {
+  public setGroupBy(
+    groupBy: string | ((node: TNode) => string | undefined)
+  ): ForceGraph<TNode, TLink> {
     this.options.groupBy = groupBy
     this.applyOptions()
     // Force a refresh to immediately update grouping
@@ -730,7 +764,7 @@ export class ForceGraph {
     labelSize?: number
     labelThreshold?: number
     padding?: number
-  }): ForceGraph {
+  }): ForceGraph<TNode, TLink> {
     if (options.borderColor !== undefined) this.options.groupBorderColor = options.borderColor
     if (options.borderWidth !== undefined) this.options.groupBorderWidth = options.borderWidth
     if (options.borderOpacity !== undefined) this.options.groupBorderOpacity = options.borderOpacity
@@ -763,14 +797,14 @@ export class ForceGraph {
   /**
    * Get nodes in a specific group
    */
-  public getNodesInGroup(groupId: string): NodeData[] {
+  public getNodesInGroup(groupId: string): TNode[] {
     return this.data.nodes.filter((node) => this.getNodeGroupId(node) === groupId)
   }
 
   /**
    * Get current options
    */
-  public getOptions(): GraphOptions {
+  public getOptions(): GraphOptions<TNode, TLink> {
     return { ...this.options }
   }
 

@@ -1,4 +1,3 @@
-import type { ForceGraph } from '@/index'
 import type {
   NodeObject as BaseNodeObject,
   LinkObject as BaseLinkObject,
@@ -22,9 +21,9 @@ export interface NodeData extends BaseNodeObject {
 }
 
 // Extend LinkObject from force-graph with our custom properties
-export interface LinkData extends BaseLinkObject<NodeData> {
-  source: string | number | NodeData
-  target: string | number | NodeData
+export interface LinkData<N extends NodeData = NodeData> extends BaseLinkObject<N> {
+  source: string | number | N
+  target: string | number | N
   weight?: number
   color?: string
   curvature?: number
@@ -32,7 +31,8 @@ export interface LinkData extends BaseLinkObject<NodeData> {
 }
 
 // Extend GraphData from force-graph with our custom properties
-export interface GraphData extends BaseGraphData<NodeData, LinkData> {
+export interface GraphData<N extends NodeData = NodeData, L extends LinkData<N> = LinkData<N>>
+  extends BaseGraphData<N, L> {
   // currentPage?: number;
   // totalPages?: number;
   // isLastPage?: boolean;
@@ -44,35 +44,37 @@ export interface ForceFn<N extends BaseNodeObject = BaseNodeObject> {
   [key: string]: any
 }
 
-export interface GraphOptions {
+export interface GraphOptions<N extends NodeData = NodeData, L extends LinkData<N> = LinkData<N>> {
   height?: number
   width?: number
   labelThreshold?: number // Ratio threshold: labels show when label_size <= node_size * threshold (default: 1.0)
-  nodeSize?: number | ((node: NodeData) => number)
-  linkWidth?: number | ((link: LinkData) => number)
-  nodeLabel?: string | ((node: NodeData) => string)
-  nodeLabelColor?: string | ((node: NodeData) => string)
+  nodeSize?: number | ((node: N) => number)
+  linkWidth?: number | ((link: L) => number)
+  nodeLabel?: string | ((node: N) => string)
+  nodeLabelColor?: string | ((node: N) => string)
   labelFontSize?: number // Font size for node labels in pixels (default: 16)
-  nodeColor?: string | ((node: NodeData) => string)
-  nodeBorderColor?: string | ((node: NodeData) => string)
-  nodeBorderWidth?: number | ((node: NodeData) => number)
+  nodeColor?: string | ((node: N) => string)
+  nodeBorderColor?: string | ((node: N) => string)
+  nodeBorderWidth?: number | ((node: N) => number)
   nodeGap?: number // default: -50
-  linkLabel?: string | ((link: LinkData) => string)
-  nodeIcon?: string | ((node: NodeData) => string)
+  linkLabel?: string | ((link: L) => string)
+  nodeIcon?: string | ((node: N) => string)
   loading?: boolean
   pointerInteraction?: boolean
   keepDragPosition?: boolean
-  nodeClickHandler?: (node: NodeData) => void
+  nodeClickHandler?: (node: N) => void
   // Link curve options
-  linkCurvature?: number | string | ((link: LinkData) => number)
-  linkDirectionalParticles?: number | ((link: LinkData) => number)
-  linkDirectionalParticleSpeed?: number | ((link: LinkData) => number)
-  linkDirectionalParticleWidth?: number | ((link: LinkData) => number)
-  linkDirectionalParticleColor?: string | ((link: LinkData) => string)
+  linkCurvature?: number | string | ((link: L) => number)
+  linkDirectionalParticles?: number | ((link: L) => number)
+  linkDirectionalParticleSpeed?: number | ((link: L) => number)
+  linkDirectionalParticleWidth?: number | ((link: L) => number)
+  linkDirectionalParticleColor?: string | ((link: L) => string)
+
+  // onEngineStop:
 
   // Group visualization options
   showGroups?: boolean
-  groupBy?: string | ((node: NodeData) => string | undefined)
+  groupBy?: string | ((node: N) => string | undefined)
   groupBorderColor?: string | ((groupId: string) => string)
   groupBorderWidth?: number
   groupBorderOpacity?: number

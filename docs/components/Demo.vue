@@ -39,7 +39,12 @@ import { ForceGraph } from '@/lib/ForceGraph'
 
 import { computed, onMounted, watch, useTemplateRef } from 'vue'
 import { useDark, useElementSize } from '@vueuse/core'
-import type { GraphData, GraphOptions as GraphOptionsType, NodeData } from '../../interfaces/types'
+import type {
+  GraphData,
+  GraphOptions as GraphOptionsType,
+  LinkData,
+  NodeData,
+} from '../../interfaces/types'
 import GraphOptions from './GraphOptions.vue'
 import { useFetchGraph } from '@docs/composables/useFetchGraph'
 import { registerGraphContext } from '@docs/context/graphContext'
@@ -88,7 +93,7 @@ const platformColors: Record<string, string> = {
   default: '#999',
 }
 
-const initialData = {
+const initialData: GraphData<NodeData, LinkData<NodeData>> = {
   nodes: [],
   links: [],
 }
@@ -114,7 +119,7 @@ watch([() => loadMoreBtn.value.status, pagination], () => {
   }
 })
 
-const graphOptions = computed<GraphOptionsType>(() => ({
+const graphOptions = computed<GraphOptionsType<NodeData, LinkData<NodeData>>>(() => ({
   width: width.value,
   height: height.value,
 
