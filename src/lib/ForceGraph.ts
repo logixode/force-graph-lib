@@ -44,6 +44,7 @@ export class ForceGraph<
     string,
     { minX: number; minY: number; maxX: number; maxY: number; nodes: TNode[] }
   > = new Map()
+  private isFirstRender: boolean = true
 
   constructor(
     container: HTMLElement,
@@ -100,8 +101,21 @@ export class ForceGraph<
 
     // this.refreshGraph();
 
-    // fit to canvas when engine stops
-    this.graph.onEngineStop(() => this.graph.zoomToFit(400))
+    // Handle engine stop events with callbacks
+    this.graph.onEngineStop(() => {
+      if (this.isFirstRender) {
+        // First render complete
+        if (this.options.onRenderComplete) {
+          this.options.onRenderComplete()
+        } else {
+          // Default behavior: zoom to fit
+          this.graph.zoomToFit(400)
+        }
+        this.isFirstRender = false
+      } else if (this.options.onGraphUpdated) {
+        this.options.onGraphUpdated()
+      }
+    })
 
     // setTimeout(() => {
     //   this.graph.cooldownTicks(undefined);
@@ -609,7 +623,6 @@ export class ForceGraph<
 
     this.graph.graphData(this.data)
   }
-
   public setLabelThreshold(threshold: number) {
     this.options.labelThreshold = threshold
     this.render()

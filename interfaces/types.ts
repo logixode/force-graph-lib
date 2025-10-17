@@ -70,7 +70,9 @@ export interface GraphOptions<N extends NodeData = NodeData, L extends LinkData<
   linkDirectionalParticleWidth?: number | ((link: L) => number)
   linkDirectionalParticleColor?: string | ((link: L) => string)
 
-  // onEngineStop:
+  // Render callback options
+  onRenderComplete?: () => void // Called when the graph completes its first render
+  onGraphUpdated?: () => void // Called when the graph completes rendering after data updates
 
   // Group visualization options
   showGroups?: boolean
