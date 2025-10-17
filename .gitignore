@@ -27,3 +27,7 @@ dist-ssr
 .vitepress/cache
 
 tsconfig*.tsbuildinfo
+
+.kilocode
+openspec
+AGENTS.md
