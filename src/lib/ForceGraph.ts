@@ -103,6 +103,8 @@ export class ForceGraph<
 
     // Handle engine stop events with callbacks
     this.graph.onEngineStop(() => {
+      if (!this.data.nodes.length) return
+
       if (this.isFirstRender) {
         // First render complete
         if (this.options.onRenderComplete) {
@@ -150,6 +152,9 @@ export class ForceGraph<
       // .cooldownTicks(5000)
       .cooldownTime(this.getCooldownTime())
       .d3Force('charge', d3.forceManyBody().strength(this.options.nodeGap ?? -50))
+    if (this.options.cooldownTicks !== undefined) {
+      this.graph.cooldownTicks(this.options.cooldownTicks)
+    }
 
     if (typeof this.options.nodeClickHandler == 'function') {
       this.graph.onNodeClick((node) => {
@@ -537,6 +542,9 @@ export class ForceGraph<
    * Normal: node.length * 125%
    */
   public getCooldownTime(): number {
+    if (this.options.cooldownTime !== undefined) {
+      return this.options.cooldownTime
+    }
     const nodeCount = this.data.nodes.length
     const calculatedTime = nodeCount * (125 / 100) // 125%
     const finalCooldownTime = Math.max(4000, calculatedTime)

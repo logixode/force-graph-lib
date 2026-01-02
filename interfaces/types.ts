@@ -83,5 +83,10 @@ export interface GraphOptions<N extends NodeData = NodeData, L extends LinkData<
   groupLabelColor?: string | ((groupId: string) => string)
   groupLabelSize?: number
   groupLabelThreshold?: number // Zoom level threshold for showing group labels
+
   groupPadding?: number // Padding around group boundaries
+
+  // Engine configuration options
+  cooldownTime?: number
+  cooldownTicks?: number
 }
