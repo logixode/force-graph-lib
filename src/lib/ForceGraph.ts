@@ -103,7 +103,10 @@ export class ForceGraph<
 
     // Handle engine stop events with callbacks
     this.graph.onEngineStop(() => {
-      if (!this.data.nodes.length) return
+      if (!this.data.nodes.length) {
+        this.isFirstRender = true
+        return
+      }
 
       if (this.isFirstRender) {
         // First render complete
