@@ -62,7 +62,6 @@ export interface GraphOptions<N extends NodeData = NodeData, L extends LinkData<
   loading?: boolean
   pointerInteraction?: boolean
   keepDragPosition?: boolean
-  nodeClickHandler?: (node: N) => void
   // Link curve options
   linkCurvature?: number | string | ((link: L) => number)
   linkDirectionalParticles?: number | ((link: L) => number)

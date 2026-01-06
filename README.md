@@ -239,9 +239,6 @@ interface GraphOptions {
   groupLabelSize?: number
   groupLabelThreshold?: number
   groupPadding?: number
-
-  // Events
-  nodeClickHandler?: (node: NodeData) => void
 }
 ```
 

@@ -158,15 +158,6 @@ export class ForceGraph<
     if (this.options.cooldownTicks !== undefined) {
       this.graph.cooldownTicks(this.options.cooldownTicks)
     }
-
-    if (typeof this.options.nodeClickHandler == 'function') {
-      this.graph.onNodeClick((node) => {
-        // Call custom node click handler if provided
-        this.options.nodeClickHandler!(node as TNode)
-
-        // this.focusPosition({ x: node.x, y: node.y })
-      })
-    }
   }
   public force(key: ForceType, func: ForceFn<TNode>) {
     return this.graph.d3Force(key, func)

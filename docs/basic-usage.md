@@ -139,33 +139,21 @@ graph.removeNode('user2')
 ### Click Handling
 
 ```typescript
-const graph = new ForceGraph(container, data, {
-  nodeClickHandler: (node) => {
-    console.log('Clicked:', node.label)
-
-    // Update the clicked node
-    graph.updateNode(node.id, {
-      color: '#ff6b6b',
-      label: `${node.label} (Clicked!)`,
-    })
-
-    // Focus on the node
-    graph.focusPosition({ id: node.id })
-  },
+// const graph = new ForceGraph()
+graph.renderer().onNodeClick((node) => {
+  console.log('Clicked node:', node)
 })
 ```
 
 ### Maintaining Drag Positions
 
 ```typescript
-const graph = new ForceGraph(container, data, {
-  keepDragPosition: true, // Nodes stay where dragged
-  nodeClickHandler: (node) => {
-    // Double-click to release fixed position
-    if (node.fx !== undefined) {
-      graph.updateNode(node.id, { fx: undefined, fy: undefined })
-    }
-  },
+// const graph = new ForceGraph()
+graph.renderer().onNodeClick((node) => {
+  // Double-click to release fixed position
+  if (node.fx !== undefined) {
+    graph.updateNode(node.id, { fx: undefined, fy: undefined })
+  }
 })
 ```
 

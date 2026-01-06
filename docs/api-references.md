@@ -40,7 +40,6 @@ constructor(
 | `linkWidth`        | `number \| function`           | `1`                  | Link stroke width                        |
 | `linkCurvature`    | `number \| string \| function` | `0`                  | Link curvature amount                    |
 | `keepDragPosition` | `boolean`                      | `false`              | Fix nodes after dragging                 |
-| `nodeClickHandler` | `function`                     | `undefined`          | Node click event handler                 |
 | `cluster`          | `function`                     | `undefined`          | Clustering function                      |
 | `collide`          | `function`                     | `undefined`          | Collision detection function             |
 

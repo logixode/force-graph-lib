@@ -85,9 +85,6 @@ const graph = new ForceGraph(container, data, {
   height: 600,
   nodeSize: 6,
   labelThreshold: 1.5,
-  nodeClickHandler: (node) => {
-    console.log('Clicked node:', node.label)
-  },
 })
 ```
 
