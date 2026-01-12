@@ -68,6 +68,7 @@ export interface GraphOptions<N extends NodeData = NodeData, L extends LinkData<
   linkDirectionalParticleSpeed?: number | ((link: L) => number)
   linkDirectionalParticleWidth?: number | ((link: L) => number)
   linkDirectionalParticleColor?: string | ((link: L) => string)
+  linkColor?: string | ((link: L) => string)
 
   // Render callback options
   onRenderComplete?: () => void // Called when the graph completes its first render

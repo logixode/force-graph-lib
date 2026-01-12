@@ -302,6 +302,13 @@ export class ForceGraph<
   }
 
   private applyLinkOptions() {
+    // Apply link color
+    this.graph.linkColor((link) => {
+      if (typeof this.options.linkColor === 'function') return this.options.linkColor(link)
+      if (this.options.linkColor) return this.options.linkColor
+      return link.color ?? ''
+    })
+
     // Apply link width
     if (this.options.linkWidth !== undefined) {
       this.graph.linkWidth(
