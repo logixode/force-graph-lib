@@ -153,8 +153,8 @@ export class ForceGraph<
       // .d3AlphaDecay(0.01)
       // .d3VelocityDecay(0.08)
       // .cooldownTicks(5000)
-      .cooldownTime(this.getCooldownTime())
-      .d3Force('charge', d3.forceManyBody().strength(this.options.nodeGap ?? -50))
+    // .cooldownTime(this.getCooldownTime())
+    // .d3Force('charge', d3.forceManyBody().strength(this.options.nodeGap ?? -50))
     if (this.options.cooldownTicks !== undefined) {
       this.graph.cooldownTicks(this.options.cooldownTicks)
     }
@@ -596,7 +596,7 @@ export class ForceGraph<
         return sourceId?.toString() !== nodeId && targetId?.toString() !== nodeId
       })
       // Update cooldown time after removing node
-      this.graph.cooldownTime(this.getCooldownTime())
+
       this.refreshGraph()
       return true
     }
@@ -627,8 +627,6 @@ export class ForceGraph<
 
     // Update cooldown time based on new node count
     this.graph.cooldownTime(this.getCooldownTime())
-
-    // this.graphData(this.data)
 
     this.graph.graphData(this.data)
   }
