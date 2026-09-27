@@ -36,6 +36,7 @@
   "scripts": {
     "dev": "bunx --bun vite",
     "build": "bunx --bun vite build && npx tsc --project tsconfig.lib.json --noEmit",
+    "type-check": "tsc --project tsconfig.lib.json --noEmit",
     "preview": "bunx --bun vite preview",
     "docs:dev": "bunx --bun vitepress dev",
     "docs:build": "vitepress build",

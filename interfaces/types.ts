@@ -4,6 +4,8 @@ import type {
   GraphData as BaseGraphData,
 } from 'force-graph'
 
+export type NodeShape = 'circle' | 'square' | 'triangle' | 'diamond' | 'star' | 'hexagon'
+
 // Extend NodeObject from force-graph with our custom properties
 export interface NodeData extends BaseNodeObject {
   id: string | number
@@ -17,6 +19,7 @@ export interface NodeData extends BaseNodeObject {
   platform?: string
   type?: string
   topic?: string // Added for grouping functionality
+  shape?: NodeShape // Per-node shape override
   [key: string]: any
 }
 
@@ -56,6 +59,7 @@ export interface GraphOptions<N extends NodeData = NodeData, L extends LinkData<
   nodeColor?: string | ((node: N) => string)
   nodeBorderColor?: string | ((node: N) => string)
   nodeBorderWidth?: number | ((node: N) => number)
+  nodeShape?: NodeShape | ((node: N) => NodeShape)
   nodeGap?: number // default: -50
   linkLabel?: string | ((link: L) => string)
   nodeIcon?: string | ((node: N) => string)
