@@ -7,6 +7,7 @@ import type {
   GraphOptions,
   LinkData,
   GraphData,
+  NodeShape,
 } from '../../interfaces/types'
 
 /**
@@ -299,6 +300,79 @@ export class ForceGraph<
       return this.options.nodeBorderColor(node)
     }
     return this.options.nodeBorderColor || '#333'
+  }
+
+  private resolveNodeShape(node: TNode): NodeShape {
+    // Priority: per-node override > global option (static or function) > default 'circle'
+    if ((node as any).shape) return (node as any).shape as NodeShape
+    if (typeof this.options.nodeShape === 'function') return this.options.nodeShape(node)
+    return this.options.nodeShape ?? 'circle'
+  }
+
+  private drawNodeShape(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    size: number,
+    shape: NodeShape
+  ): void {
+    ctx.beginPath()
+    switch (shape) {
+      case 'square': {
+        ctx.rect(x - size, y - size, size * 2, size * 2)
+        break
+      }
+      case 'triangle': {
+        // Equilateral triangle, centered on (x, y)
+        const h = size * Math.sqrt(3)
+        ctx.moveTo(x, y - size)
+        ctx.lineTo(x + h / 2, y + size / 2)
+        ctx.lineTo(x - h / 2, y + size / 2)
+        ctx.closePath()
+        break
+      }
+      case 'diamond': {
+        // Square rotated 45deg
+        ctx.moveTo(x, y - size)
+        ctx.lineTo(x + size, y)
+        ctx.lineTo(x, y + size)
+        ctx.lineTo(x - size, y)
+        ctx.closePath()
+        break
+      }
+      case 'star': {
+        // 5-pointed star with inner radius = size * 0.4
+        const outerR = size
+        const innerR = size * 0.4
+        const points = 5
+        for (let i = 0; i < points * 2; i++) {
+          const r = i % 2 === 0 ? outerR : innerR
+          const angle = (Math.PI / points) * i - Math.PI / 2
+          const px = x + r * Math.cos(angle)
+          const py = y + r * Math.sin(angle)
+          if (i === 0) ctx.moveTo(px, py)
+          else ctx.lineTo(px, py)
+        }
+        ctx.closePath()
+        break
+      }
+      case 'hexagon': {
+        // Regular hexagon, flat-top orientation
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 3) * i - Math.PI / 6
+          const px = x + size * Math.cos(angle)
+          const py = y + size * Math.sin(angle)
+          if (i === 0) ctx.moveTo(px, py)
+          else ctx.lineTo(px, py)
+        }
+        ctx.closePath()
+        break
+      }
+      case 'circle':
+      default:
+        ctx.arc(x, y, size, 0, 2 * Math.PI)
+        break
+    }
   }
 
   private applyLinkOptions() {
