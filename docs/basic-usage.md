@@ -157,6 +157,61 @@ graph.renderer().onNodeClick((node) => {
 })
 ```
 
+## Node Shapes
+
+Nodes support six geometric shapes: `circle` (default), `square`, `triangle`, `diamond`, `star`, and `hexagon`.
+
+### Global Shape
+
+Apply the same shape to all nodes:
+
+```typescript
+const graph = new ForceGraph(container, data, {
+  nodeShape: 'hexagon',
+})
+```
+
+### Shape by Node Type (Function)
+
+Use a function to assign shapes based on node properties — this covers any pattern-matching use case:
+
+```typescript
+const graph = new ForceGraph(container, data, {
+  nodeShape: (node) => {
+    if (node.type === 'server') return 'square'
+    if (node.type === 'database') return 'diamond'
+    if (node.type === 'gateway') return 'hexagon'
+    return 'circle'
+  },
+})
+```
+
+### Per-Node Override
+
+Set `shape` directly on a node in your data to override global config:
+
+```typescript
+const data = {
+  nodes: [
+    { id: '1', label: 'Default' },                // uses global/default
+    { id: '2', label: 'Special', shape: 'star' }, // always star
+  ],
+  links: [{ source: '1', target: '2' }],
+}
+
+const graph = new ForceGraph(container, data, {
+  nodeShape: 'circle', // default for nodes without shape set
+})
+```
+
+### Priority Order
+
+When multiple shape configs exist, resolution order is:
+
+1. **Per-node** `node.shape` — highest priority
+2. **`nodeShape` option** — global static or function result
+3. **`'circle'`** — default fallback
+
 ## Customization Patterns
 
 ### Conditional Styling

@@ -35,6 +35,7 @@ constructor(
 | `nodeColor`        | `string \| function`           | `undefined`          | Node fill color                          |
 | `nodeBorderColor`  | `string \| function`           | `'#333'`             | Node border color                        |
 | `nodeBorderWidth`  | `number \| function`           | `0`                  | Node border width                        |
+| `nodeShape`        | `NodeShape \| function`      | `'circle'`           | Node shape: `'circle'`, `'square'`, `'triangle'`, `'diamond'`, `'star'`, `'hexagon'` |
 | `nodeLabel`        | `string \| function`           | Node `label` or `id` | Node label text                          |
 | `nodeLabelColor`   | `string \| function`           | `'#555'`             | Node label color                         |
 | `linkWidth`        | `number \| function`           | `1`                  | Link stroke width                        |
@@ -97,6 +98,12 @@ const graphData: GraphData = {
 
 Represents individual nodes/vertices in the graph.
 
+### NodeShape Type
+
+```typescript
+type NodeShape = 'circle' | 'square' | 'triangle' | 'diamond' | 'star' | 'hexagon'
+```
+
 ### Required Properties
 
 | Property | Type               | Description                    |
@@ -111,8 +118,9 @@ Represents individual nodes/vertices in the graph.
 | `color`    | `string` | Node fill color (CSS color)        | `"#e74c3c"`, `"red"`       |
 | `value`    | `number` | Numeric value for sizing/weighting | `25`                       |
 | `type`     | `string` | Node category/classification       | `"user"`, `"admin"`        |
-| `topic`    | `string` | Grouping category                  | `"engineering"`, `"sales"` |
-| `platform` | `string` | Platform identifier                | `"web"`, `"mobile"`        |
+| `topic`    | `string`    | Grouping category                                      | `"engineering"`, `"sales"` |
+| `shape`    | `NodeShape` | Per-node shape override (overrides `nodeShape` option) | `'square'`, `'diamond'`    |
+| `platform` | `string`    | Platform identifier                                    | `"web"`, `"mobile"`        |
 
 ### Position Properties
 
