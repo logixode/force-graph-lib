@@ -304,7 +304,7 @@ export class ForceGraph<
 
   private resolveNodeShape(node: TNode): NodeShape {
     // Priority: per-node override > global option (static or function) > default 'circle'
-    if ((node as any).shape) return (node as any).shape as NodeShape
+    if (node.shape) return node.shape
     if (typeof this.options.nodeShape === 'function') return this.options.nodeShape(node)
     return this.options.nodeShape ?? 'circle'
   }
