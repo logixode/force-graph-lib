@@ -185,16 +185,18 @@ export class ForceGraph<
           ? this.options.nodeBorderWidth(node)
           : this.options.nodeBorderWidth
 
-      // Draw the main node circle
-      ctx.beginPath()
-      ctx.arc(node.x || 0, node.y || 0, size, 0, 2 * Math.PI)
+      const shape = this.resolveNodeShape(node)
+      const nx = node.x || 0
+      const ny = node.y || 0
+
+      // Draw the main node shape
+      this.drawNodeShape(ctx, nx, ny, size, shape)
       ctx.fillStyle = this.getNodeColor(node)
       ctx.fill()
 
       // Draw the border if border width is greater than 0
       if (borderWidth && borderWidth > 0) {
-        ctx.beginPath()
-        ctx.arc(node.x || 0, node.y || 0, size, 0, 2 * Math.PI)
+        this.drawNodeShape(ctx, nx, ny, size, shape)
         ctx.strokeStyle = this.getNodeBorderColor(node)
         ctx.lineWidth = borderWidth
         ctx.stroke()
