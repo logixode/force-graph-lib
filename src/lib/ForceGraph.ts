@@ -41,11 +41,12 @@ export class ForceGraph<
   private linkMap: Map<string, TLink> = new Map()
   private options: GraphOptions<TNode, TLink>
   private worker: Worker | null = null
-  private groupBounds: Map<
+  private groupHulls: Map<
     string,
-    { minX: number; minY: number; maxX: number; maxY: number; nodes: TNode[] }
+    { points: [number, number][]; labelX: number; labelY: number; nodes: TNode[] }
   > = new Map()
   private isFirstRender: boolean = true
+  private autoColorScale = d3.scaleOrdinal(d3.schemeCategory10)
 
   constructor(
     container: HTMLElement,
@@ -73,19 +74,20 @@ export class ForceGraph<
     const groupDefaults = baseOptions.showGroups
       ? {
           groupBy: 'topic',
+          groupFillColor: 'rgba(0, 0, 0, 0.05)',
+          groupFillOpacity: 1,
           groupBorderColor: '#666',
           groupBorderWidth: 2,
           groupBorderOpacity: 0.3,
           groupLabelColor: '#333',
           groupLabelSize: 16,
-          groupLabelThreshold: 0.8,
           groupPadding: 20,
         }
       : {}
 
     this.options = {
-      ...baseOptions,
       ...groupDefaults,
+      ...baseOptions,
     }
 
     this.initGraph()
@@ -452,12 +454,12 @@ export class ForceGraph<
   }
 
   /**
-   * Calculate group boundaries based on node positions
+   * Calculate group convex hulls based on node positions
    */
-  private calculateGroupBounds(): void {
+  private calculateGroupHulls(): void {
     if (!this.options.showGroups) return
 
-    this.groupBounds.clear()
+    this.groupHulls.clear()
     const padding = this.options.groupPadding || 20
 
     // Group nodes by the specified property
@@ -473,33 +475,53 @@ export class ForceGraph<
       }
     })
 
-    // Calculate bounds for each group
+    // Calculate convex hull for each group
     groups.forEach((nodes, groupId) => {
       if (nodes.length === 0) return
 
-      let minX = Infinity,
-        minY = Infinity,
-        maxX = -Infinity,
-        maxY = -Infinity
+      const points: [number, number][] = []
+      let minTopY = Infinity
+      let labelX = 0
 
+      // Generate points around the perimeter of each node to ensure
+      // a smooth, padded hull even if the group has 1 or 2 nodes.
       nodes.forEach((node) => {
         if (node.x !== undefined && node.y !== undefined) {
-          const nodeSize = this.getNodeSize(node)
-          minX = Math.min(minX, node.x - nodeSize)
-          minY = Math.min(minY, node.y - nodeSize)
-          maxX = Math.max(maxX, node.x + nodeSize)
-          maxY = Math.max(maxY, node.y + nodeSize)
+          const nodeRadius = this.getNodeSize(node)
+          const offset = nodeRadius + padding
+          
+          for (let i = 0; i < 8; i++) {
+            const angle = (i * Math.PI) / 4
+            points.push([
+              node.x + offset * Math.cos(angle),
+              node.y + offset * Math.sin(angle)
+            ])
+          }
+          
+          // Track highest point for label positioning
+          if (node.y - offset < minTopY) {
+            minTopY = node.y - offset
+            labelX = node.x
+          }
         }
       })
 
-      if (minX !== Infinity) {
-        this.groupBounds.set(groupId, {
-          minX: minX - padding,
-          minY: minY - padding,
-          maxX: maxX + padding,
-          maxY: maxY + padding,
-          nodes,
-        })
+      if (points.length >= 3) {
+        const hull = d3.polygonHull(points)
+        if (hull) {
+          // Adjust labelX to center it over the topmost part of the hull
+          const topPoints = hull.filter((p) => Math.abs(p[1] - minTopY) < padding)
+          if (topPoints.length > 0) {
+            labelX = topPoints.reduce((sum, p) => sum + p[0], 0) / topPoints.length
+          }
+
+          this.groupHulls.set(groupId, {
+            points: hull,
+            labelX,
+            labelY: minTopY,
+            nodes,
+          })
+        }
       }
     })
   }
@@ -522,73 +544,115 @@ export class ForceGraph<
   }
 
   /**
-   * Render group borders and labels
+   * Render group hulls and labels
    */
   private renderGroups(ctx: CanvasRenderingContext2D, globalScale: number): void {
     if (!this.options.showGroups) return
 
-    this.calculateGroupBounds()
+    this.calculateGroupHulls()
 
-    this.groupBounds.forEach((bounds, groupId) => {
+    // Create D3 curve generator targeting the canvas context directly
+    const lineGen = d3.line()
+      .curve(d3.curveCatmullRomClosed)
+      .context(ctx as any)
+
+    this.groupHulls.forEach((hull, groupId) => {
+      const fillColor = this.getGroupFillColor(groupId)
+      const fillOpacity = this.options.groupFillOpacity ?? 1
       const borderColor = this.getGroupBorderColor(groupId)
-      const borderWidth = this.options.groupBorderWidth || 2
-      const borderOpacity = this.options.groupBorderOpacity || 0.3
+      const borderWidth = this.options.groupBorderWidth ?? 0
+      const borderOpacity = this.options.groupBorderOpacity ?? 0.3
 
-      // Draw group border
+      // Draw group hull
       ctx.save()
-      ctx.globalAlpha = borderOpacity
-      ctx.strokeStyle = borderColor
-      ctx.lineWidth = borderWidth / globalScale
-      ctx.setLineDash([10 / globalScale, 5 / globalScale]) // Dashed border
-      ctx.strokeRect(bounds.minX, bounds.minY, bounds.maxX - bounds.minX, bounds.maxY - bounds.minY)
+      ctx.beginPath()
+      
+      // @ts-ignore - D3 types might complain about line generator with canvas context
+      lineGen(hull.points)
+      
+      // Fill background
+      if (fillColor) {
+        ctx.globalAlpha = fillOpacity
+        ctx.fillStyle = fillColor
+        ctx.fill()
+      }
+
+      // Draw border
+      if (borderWidth > 0 && borderColor) {
+        ctx.globalAlpha = borderOpacity
+        ctx.strokeStyle = borderColor
+        ctx.lineWidth = borderWidth / globalScale
+        ctx.setLineDash([]) // Usually convex hulls are drawn solid, but this can be adjusted
+        ctx.stroke()
+      }
       ctx.restore()
 
-      // Draw group label when zoomed out
-      const labelThreshold = this.options.groupLabelThreshold || 0.8
-      if (globalScale <= labelThreshold) {
-        const labelColor = this.getGroupLabelColor(groupId)
-        const labelSize = (this.options.groupLabelSize || 16) / globalScale
+      // Draw group label (always visible, no zoom threshold)
+      const labelColor = this.getGroupLabelColor(groupId)
+      const labelSize = (this.options.groupLabelSize || 16) / globalScale
 
-        ctx.save()
-        ctx.font = `bold ${labelSize}px Arial`
-        ctx.fillStyle = labelColor
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
+      ctx.save()
+      ctx.font = `bold ${labelSize}px Arial`
+      ctx.fillStyle = labelColor
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
 
-        // Position label at the top center of the group
-        const labelX = (bounds.minX + bounds.maxX) / 2
-        const labelY = bounds.minY - labelSize / 2
+      // Position label at the top center of the hull
+      const lY = hull.labelY - labelSize / 2
 
-        // Draw background for better readability
-        const textMetrics = ctx.measureText(groupId)
-        const textWidth = textMetrics.width
-        const textHeight = labelSize
+      // Draw background for better readability
+      const textMetrics = ctx.measureText(groupId)
+      const textWidth = textMetrics.width
+      const textHeight = labelSize
 
-        ctx.globalAlpha = 0.8
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
-        ctx.fillRect(
-          labelX - textWidth / 2 - 4,
-          labelY - textHeight / 2 - 2,
-          textWidth + 8,
-          textHeight + 4
-        )
+      ctx.globalAlpha = 0.8
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+      ctx.fillRect(
+        hull.labelX - textWidth / 2 - 4,
+        lY - textHeight / 2 - 2,
+        textWidth + 8,
+        textHeight + 4
+      )
 
-        ctx.globalAlpha = 1
-        ctx.fillStyle = labelColor
-        ctx.fillText(groupId, labelX, labelY)
-        ctx.restore()
-      }
+      ctx.globalAlpha = 1
+      ctx.fillStyle = labelColor
+      ctx.fillText(groupId, hull.labelX, lY)
+      ctx.restore()
     })
+  }
+
+  /**
+   * Get group fill color
+   */
+  private getGroupFillColor(groupId: string): string | undefined {
+    let color: string | undefined
+    if (typeof this.options.groupFillColor === 'function') {
+      color = this.options.groupFillColor(groupId)
+    } else {
+      color = this.options.groupFillColor
+    }
+
+    if (color === 'auto') {
+      return this.autoColorScale(groupId)
+    }
+    return color
   }
 
   /**
    * Get group border color
    */
   private getGroupBorderColor(groupId: string): string {
+    let color: string | undefined
     if (typeof this.options.groupBorderColor === 'function') {
-      return this.options.groupBorderColor(groupId)
+      color = this.options.groupBorderColor(groupId)
+    } else {
+      color = this.options.groupBorderColor
     }
-    return this.options.groupBorderColor || '#666'
+
+    if (color === 'auto') {
+      return this.autoColorScale(groupId)
+    }
+    return color || '#666'
   }
 
   /**
@@ -807,12 +871,13 @@ export class ForceGraph<
     if (show) {
       const groupDefaults = {
         groupBy: 'topic',
+        groupFillColor: 'rgba(0, 0, 0, 0.05)',
+        groupFillOpacity: 1,
         groupBorderColor: '#666',
         groupBorderWidth: 2,
         groupBorderOpacity: 0.3,
         groupLabelColor: '#333',
         groupLabelSize: 16,
-        groupLabelThreshold: 0.8,
         groupPadding: 20,
       }
 
@@ -847,21 +912,22 @@ export class ForceGraph<
    * Set group visualization options
    */
   public setGroupOptions(options: {
+    fillColor?: string | ((groupId: string) => string)
+    fillOpacity?: number
     borderColor?: string | ((groupId: string) => string)
     borderWidth?: number
     borderOpacity?: number
     labelColor?: string | ((groupId: string) => string)
     labelSize?: number
-    labelThreshold?: number
     padding?: number
   }): ForceGraph<TNode, TLink> {
+    if (options.fillColor !== undefined) this.options.groupFillColor = options.fillColor
+    if (options.fillOpacity !== undefined) this.options.groupFillOpacity = options.fillOpacity
     if (options.borderColor !== undefined) this.options.groupBorderColor = options.borderColor
     if (options.borderWidth !== undefined) this.options.groupBorderWidth = options.borderWidth
     if (options.borderOpacity !== undefined) this.options.groupBorderOpacity = options.borderOpacity
     if (options.labelColor !== undefined) this.options.groupLabelColor = options.labelColor
     if (options.labelSize !== undefined) this.options.groupLabelSize = options.labelSize
-    if (options.labelThreshold !== undefined)
-      this.options.groupLabelThreshold = options.labelThreshold
     if (options.padding !== undefined) this.options.groupPadding = options.padding
 
     this.applyOptions()

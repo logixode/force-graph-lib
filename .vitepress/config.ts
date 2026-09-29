@@ -52,6 +52,7 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: 'Demo', link: '/demo' },
+          { text: 'Grouping Example', link: '/grouping' },
           { text: 'Curves Examples', link: '/curves' },
           { text: 'DAG Tree', link: '/dag-tree' },
         ],

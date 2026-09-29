@@ -57,15 +57,16 @@ constructor(
 
 | Option                | Type                 | Default   | Description                            |
 | --------------------- | -------------------- | --------- | -------------------------------------- |
-| `showGroups`          | `boolean`            | `false`   | Enable group visualization             |
-| `groupBy`             | `string \| function` | `'topic'` | Property or function to group nodes by |
-| `groupBorderColor`    | `string \| function` | `'#666'`  | Group border color                     |
-| `groupBorderWidth`    | `number`             | `2`       | Group border width                     |
-| `groupBorderOpacity`  | `number`             | `0.3`     | Group border opacity                   |
-| `groupLabelColor`     | `string \| function` | `'#333'`  | Group label color                      |
-| `groupLabelSize`      | `number`             | `16`      | Group label font size                  |
-| `groupLabelThreshold` | `number`             | `0.8`     | Zoom level threshold for group labels  |
-| `groupPadding`        | `number`             | `20`      | Padding around group boundaries        |
+| `showGroups`          | `boolean`            | `false`                 | Enable group convex hulls visualization |
+| `groupBy`             | `string \| function` | `'topic'`               | Property or function to group nodes by  |
+| `groupFillColor`      | `string \| function` | `'rgba(0,0,0,0.05)'`    | Group fill color. Supports `'auto'`     |
+| `groupFillOpacity`    | `number`             | `1`                     | Group fill opacity                      |
+| `groupBorderColor`    | `string \| function` | `'#666'`                | Group border color. Supports `'auto'`   |
+| `groupBorderWidth`    | `number`             | `2`                     | Group border width (set to 0 to hide)   |
+| `groupBorderOpacity`  | `number`             | `0.3`                   | Group border opacity                    |
+| `groupLabelColor`     | `string \| function` | `'#333'`                | Group label color                       |
+| `groupLabelSize`      | `number`             | `16`                    | Group label font size                   |
+| `groupPadding`        | `number`             | `20`                    | Padding around group hulls boundaries   |
 
 ## Core Interfaces
 

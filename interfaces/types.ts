@@ -81,12 +81,13 @@ export interface GraphOptions<N extends NodeData = NodeData, L extends LinkData<
   // Group visualization options
   showGroups?: boolean
   groupBy?: string | ((node: N) => string | undefined)
+  groupFillColor?: string | ((groupId: string) => string)
+  groupFillOpacity?: number
   groupBorderColor?: string | ((groupId: string) => string)
   groupBorderWidth?: number
   groupBorderOpacity?: number
   groupLabelColor?: string | ((groupId: string) => string)
   groupLabelSize?: number
-  groupLabelThreshold?: number // Zoom level threshold for showing group labels
 
   groupPadding?: number // Padding around group boundaries
 
