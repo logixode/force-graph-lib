@@ -45,6 +45,7 @@ export class ForceGraph<
     string,
     { points: [number, number][]; labelX: number; labelY: number; nodes: TNode[] }
   > = new Map()
+  private nodeGroupsCache: Map<string, TNode[]> | null = null
   private isFirstRender: boolean = true
   private autoColorScale = d3.scaleOrdinal(d3.schemeCategory10)
 
@@ -123,6 +124,11 @@ export class ForceGraph<
       } else if (this.options.onGraphUpdated) {
         this.options.onGraphUpdated()
       }
+    })
+
+    // Calculate group hulls only when simulation is active (nodes moving)
+    this.graph.onEngineTick(() => {
+      this.calculateGroupHulls()
     })
 
     // setTimeout(() => {
@@ -462,18 +468,9 @@ export class ForceGraph<
     this.groupHulls.clear()
     const padding = this.options.groupPadding || 20
 
-    // Group nodes by the specified property
-    const groups: Map<string, TNode[]> = new Map()
-
-    this.data.nodes.forEach((node) => {
-      const groupId = this.getNodeGroupId(node)
-      if (groupId) {
-        if (!groups.has(groupId)) {
-          groups.set(groupId, [])
-        }
-        groups.get(groupId)!.push(node)
-      }
-    })
+    // Use cached group assignments to avoid expensive per-frame recalculations
+    this.ensureNodeGroupsCache()
+    const groups = this.nodeGroupsCache!
 
     // Calculate convex hull for each group
     groups.forEach((nodes, groupId) => {
@@ -544,12 +541,27 @@ export class ForceGraph<
   }
 
   /**
+   * Populate group cache to prevent calculating on every frame
+   */
+  private ensureNodeGroupsCache(): void {
+    if (this.nodeGroupsCache) return
+    this.nodeGroupsCache = new Map()
+    this.data.nodes.forEach((node) => {
+      const groupId = this.getNodeGroupId(node)
+      if (groupId) {
+        if (!this.nodeGroupsCache!.has(groupId)) {
+          this.nodeGroupsCache!.set(groupId, [])
+        }
+        this.nodeGroupsCache!.get(groupId)!.push(node)
+      }
+    })
+  }
+
+  /**
    * Render group hulls and labels
    */
   private renderGroups(ctx: CanvasRenderingContext2D, globalScale: number): void {
     if (!this.options.showGroups) return
-
-    this.calculateGroupHulls()
 
     // Create D3 curve generator targeting the canvas context directly
     const lineGen = d3.line()
@@ -833,6 +845,7 @@ export class ForceGraph<
   public graphData(data: GraphData<TNode, TLink>): ForceGraph<TNode, TLink> {
     this.nodesMap.clear()
     this.linkMap.clear()
+    this.nodeGroupsCache = null
 
     // Add new nodes if they don't exist
     data.nodes.forEach((node) => {
