@@ -6,6 +6,15 @@ import type {
 
 export type NodeShape = 'circle' | 'square' | 'triangle' | 'diamond' | 'star' | 'hexagon'
 
+export interface NodeChar {
+  /** Character, letter, number, or emoji to display inside the node */
+  char: string
+  /** Absolute size in world units. If omitted, uses node size * nodeCharSizeRatio */
+  fontSize?: number
+  /** Fill color. Defaults to '#000' */
+  color?: string
+}
+
 // Extend NodeObject from force-graph with our custom properties
 export interface NodeData extends BaseNodeObject {
   id: string | number
@@ -63,6 +72,8 @@ export interface GraphOptions<N extends NodeData = NodeData, L extends LinkData<
   nodeGap?: number // default: -50
   linkLabel?: string | ((link: L) => string)
   nodeIcon?: string | ((node: N) => string)
+  nodeChar?: (node: N) => NodeChar | null | undefined
+  nodeCharSizeRatio?: number // Ratio for global char size. default: 0.8 (80% of node size)
   loading?: boolean
   pointerInteraction?: boolean
   keepDragPosition?: boolean

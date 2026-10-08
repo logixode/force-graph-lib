@@ -55,6 +55,7 @@ export default defineConfig({
           { text: 'Grouping Example', link: '/grouping' },
           { text: 'Curves Examples', link: '/curves' },
           { text: 'DAG Tree', link: '/dag-tree' },
+          { text: 'Node Char Example', link: '/node-char' },
         ],
       },
     ],

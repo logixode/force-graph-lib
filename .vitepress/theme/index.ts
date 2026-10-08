@@ -16,6 +16,7 @@ const Demo = defineClientComponent(() => import('@docs/components/Demo.vue'))
 const DemoGrouping = defineClientComponent(() => import('@docs/components/DemoGrouping.vue'))
 const Curves = defineClientComponent(() => import('@docs/components/Curves.vue'))
 const DagTree = defineClientComponent(() => import('@docs/components/DagTree.vue'))
+const DemoNodeChar = defineClientComponent(() => import('@docs/components/DemoNodeChar.vue'))
 
 export default {
   extends: DefaultTheme,
@@ -40,5 +41,6 @@ export default {
     app.component('DemoGrouping', DemoGrouping)
     app.component('Curves', Curves)
     app.component('DagTree', DagTree)
+    app.component('DemoNodeChar', DemoNodeChar)
   },
 } satisfies Theme

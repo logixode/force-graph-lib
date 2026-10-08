@@ -8,6 +8,7 @@ import type {
   LinkData,
   GraphData,
   NodeShape,
+  NodeChar,
 } from '../../interfaces/types'
 
 /**
@@ -48,6 +49,7 @@ export class ForceGraph<
   private nodeGroupsCache: Map<string, TNode[]> | null = null
   private isFirstRender: boolean = true
   private autoColorScale = d3.scaleOrdinal(d3.schemeCategory10)
+  private charCache = new Map<string, ImageBitmap>()
 
   constructor(
     container: HTMLElement,
@@ -210,6 +212,19 @@ export class ForceGraph<
         ctx.stroke()
       }
 
+      // Draw character inside node (only when nodeChar is configured)
+      if (this.options.nodeChar) {
+        const charConfig = this.options.nodeChar(node)
+        if (charConfig?.char) {
+          const key = `${charConfig.char}|${charConfig.color ?? '#000'}`
+          const bitmap = this.charCache.get(key)
+          if (bitmap) {
+            const drawSize = charConfig.fontSize ?? size * (this.options.nodeCharSizeRatio ?? 0.8)
+            ctx.drawImage(bitmap, nx - drawSize / 2, ny - drawSize / 2, drawSize, drawSize)
+          }
+        }
+      }
+
       const label = this.getNodeLabel(node)
       if (label && this.shouldShowLabel(node, globalScale)) {
         const color =
@@ -246,6 +261,39 @@ export class ForceGraph<
     }
 
     return (node as any)?.label || (node.id as string)
+  }
+
+  /** Render a single char/emoji to a 64×64 OffscreenCanvas and return an ImageBitmap */
+  private buildCharBitmap(char: string, color: string): ImageBitmap {
+    const size = 64
+    const oc = new OffscreenCanvas(size, size)
+    const octx = oc.getContext('2d')!
+    octx.font = `${size * 0.8}px sans-serif`
+    octx.textAlign = 'center'
+    octx.textBaseline = 'middle'
+    octx.fillStyle = color
+    octx.fillText(char, size / 2, size / 2)
+    return oc.transferToImageBitmap()
+  }
+
+  /** Idempotent — only adds cache entries for chars not yet cached */
+  private ensureCharCache(): void {
+    if (!this.options.nodeChar) return
+    for (const node of this.data.nodes) {
+      const charConfig = this.options.nodeChar(node)
+      if (!charConfig?.char) continue
+      const color = charConfig.color ?? '#000'
+      const key = `${charConfig.char}|${color}`
+      if (!this.charCache.has(key)) {
+        this.charCache.set(key, this.buildCharBitmap(charConfig.char, color))
+      }
+    }
+  }
+
+  /** Release GPU memory and clear the cache */
+  private clearCharCache(): void {
+    this.charCache.forEach((bitmap) => bitmap.close())
+    this.charCache.clear()
   }
 
   /**
@@ -291,6 +339,8 @@ export class ForceGraph<
       nodes: [...this.data.nodes, ...newNodes],
       links: [...this.data.links, ...newLinks],
     }
+
+    this.ensureCharCache()
 
     // Update the graph
     this.refreshGraph()
@@ -777,6 +827,8 @@ export class ForceGraph<
       links: Array.from(this.linkMap.values()),
     }
 
+    this.ensureCharCache()
+
     // Update cooldown time based on new node count
     this.graph.cooldownTime(this.getCooldownTime())
 
@@ -789,6 +841,10 @@ export class ForceGraph<
 
   public setOptions(options: Partial<GraphOptions<TNode, TLink>>) {
     this.options = { ...this.options, ...options }
+    if (options.nodeChar !== undefined) {
+      this.clearCharCache()
+      this.ensureCharCache()
+    }
     this.applyOptions()
   }
 
@@ -846,6 +902,7 @@ export class ForceGraph<
     this.nodesMap.clear()
     this.linkMap.clear()
     this.nodeGroupsCache = null
+    this.clearCharCache()
 
     // Add new nodes if they don't exist
     data.nodes.forEach((node) => {
@@ -866,6 +923,8 @@ export class ForceGraph<
       nodes: Array.from(this.nodesMap.values()),
       links: Array.from(this.linkMap.values()),
     }
+
+    this.ensureCharCache()
 
     // Update cooldown time based on new node count
     this.graph.cooldownTime(this.getCooldownTime())
@@ -982,6 +1041,7 @@ export class ForceGraph<
       this.worker.terminate()
       this.worker = null
     }
+    this.clearCharCache()
     this.graph._destructor()
   }
 }
